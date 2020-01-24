@@ -266,7 +266,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             public string RequiredErrorText { get; set; }
             public bool PostbackOnChange { get; set; }
             public string FieldType { get; set; }
-            public RadioField FieldConfiguration { get; set; }
+            public FieldConfiguration FieldConfiguration { get; set; }
             public string RevealCondition { get; set; }
             public int Order { get; set; }
             public string ResponseValue { get; set; }
@@ -417,7 +417,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             }
         }
 
-        public class RadioField: ILiquidizable
+        public class FieldConfiguration: ILiquidizable
         {
             [Rock.Data.LavaIgnore]
             public object this[object key]
@@ -460,6 +460,17 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             {
                 return this;
             }
+        }
+
+        // Not suitable for Lava
+        public class AddressValue
+        {
+            public string Street1 { get; set; }
+            public string Street2 { get; set; }
+            public string City { get; set; }
+            public string State { get; set; }
+            public string Country { get; set; }
+            public string PostalCode { get; set; }
         }
         #endregion
 
@@ -589,8 +600,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                     var configJson = GetAttributeValue( AttributeKey.WorkflowFieldConfiguration );
                     _formState = configJson.FromJsonOrNull<FormState>();
                     //lSummary.Visible = true;
-                    lSummary.Visible = false;
-                    lSummary.Text = JsonConvert.SerializeObject( _formState );
+                    //lSummary.Visible = false;
+                    //lSummary.Text = JsonConvert.SerializeObject( _formState );
                 }
                 catch { }
 
@@ -627,22 +638,47 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 var controlTest = phAttributes.FindControl( field.FieldName );
                 try
                 {
-                    field.ResponseValue = ( ( RockTextBox ) controlTest ).Text ?? "";
-                    //field.ResponseValue = control.GetPropertyValue("Text").ToString();
+                    var addressControl = ( ( AddressControl ) controlTest );
+                    //                    field.ResponseValue = String.Format( @"{
+                    //    ""Street1"": ""{0}"",
+                    //    ""Street2"": ""{1}"",
+                    //    ""City"": ""{2}"",
+                    //    ""State"": ""{3}"",
+                    //    ""Country"": ""{4}"",
+                    //    ""PostalCode"": ""{5}""
+                    //}"
+                    //    , addressControl.Street1    .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //    , addressControl.Street2    .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //    , addressControl.City       .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //    , addressControl.State      .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //    , addressControl.Country    .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //    , addressControl.PostalCode .Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    //);
+                    var addressValues = new AddressValue
+                    {
+                        Street1 = addressControl.Street1,
+                        Street2 = addressControl.Street2,
+                        City = addressControl.City,
+                        State = addressControl.State,
+                        Country = addressControl.Country,
+                        PostalCode = addressControl.PostalCode
+                    };
+                    field.ResponseValue = addressValues.ToJson();
                 }
                 catch
-                {
+                { 
                     try
                     {
-                        field.ResponseValue = ( ( RockRadioButtonList ) controlTest ).SelectedValue ?? "";
+                        field.ResponseValue = ( ( RockTextBox ) controlTest ).Text ?? "";
                     }
                     catch
                     {
                         try
                         {
-                            field.ResponseValue = ( ( RockTextBox ) controlTest ).Text; // Not sure why this was here.
+                            field.ResponseValue = ( ( RockRadioButtonList ) controlTest ).SelectedValue ?? "";
                         }
-                        catch { }
+                        catch
+                        { }
                     }
                 }
             }
@@ -1049,9 +1085,53 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             Rows = field.FieldConfiguration.Rows,
                             AutoPostBack = field.PostbackOnChange,
                             Visible = fieldIsVisible
-                        }; phAttributes.Controls.Add(fieldMemo);
+                        };
+                        phAttributes.Controls.Add(fieldMemo);
 
                         _formControls.Add(fieldMemo);
+                        break;
+
+                    case "date":
+                        var fieldDate = new DatePicker
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup,
+                            Text = field.ResponseValue,
+                            Rows = field.FieldConfiguration.Rows,
+                            AutoPostBack = field.PostbackOnChange,
+                            Visible = fieldIsVisible
+                        };
+                        phAttributes.Controls.Add(fieldDate);
+
+                        _formControls.Add(fieldDate);
+                        break;
+
+                    case "address":
+                        var addressValues = field.ResponseValue.FromJsonOrNull<AddressValue>();
+                        var fieldAddress = new AddressControl
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup, 
+                            Visible = fieldIsVisible,
+
+                            Street1 = addressValues != null ? addressValues.Street1 : "",
+                            Street2 = addressValues != null ? addressValues.Street2 : "",
+                            City = addressValues != null ? addressValues.City : "",
+                            State = addressValues != null ? addressValues.State : "",
+                            Country = addressValues != null ? addressValues.Country : "",
+                            PostalCode = addressValues != null ? addressValues.PostalCode : ""
+                        };
+                        phAttributes.Controls.Add(fieldAddress);
+
+                        _formControls.Add(fieldAddress);
                         break;
 
                     case "radio":
