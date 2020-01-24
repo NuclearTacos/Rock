@@ -145,7 +145,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             ""Required"": true,
             ""RequiredErrorText"": ""Please respond to question 2"",
             ""PostbackOnChange"": false,
-            ""FieldType"": ""Memo"",
+            ""FieldType"": ""Text"",
             ""FieldConfiguration"": {
                 ""Rows"": 3
             },
@@ -1063,7 +1063,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 switch ( field.FieldType.ToLower() )
                 {
                     case "literal":
-                        var fieldText = new NotificationBox
+                        var fieldLiteral = new NotificationBox
                         {
                             ID = field.FieldName,
                             Text = field.Prompt.ResolveMergeFields(mergeFields),
@@ -1071,8 +1071,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         };
                         break;
 
-                    case "memo":
-                        var fieldMemo = new RockTextBox
+                    case "text":
+                        var fieldText = new RockTextBox
                         {
                             ID = field.FieldName,
                             Label = field.Prompt.ResolveMergeFields(mergeFields),
@@ -1086,9 +1086,9 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             AutoPostBack = field.PostbackOnChange,
                             Visible = fieldIsVisible
                         };
-                        phAttributes.Controls.Add(fieldMemo);
+                        phAttributes.Controls.Add(fieldText);
 
-                        _formControls.Add(fieldMemo);
+                        _formControls.Add(fieldText);
                         break;
 
                     case "date":
