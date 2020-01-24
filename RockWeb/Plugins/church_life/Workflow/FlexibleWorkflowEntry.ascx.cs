@@ -428,6 +428,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                     switch (key.ToStringSafe())
                     {
                         case "Rows": return Rows;
+                        case "Style": return Style;
                         case "Options": return Options;
                         default: return "Lava+Field";
                     }
@@ -435,6 +436,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             }
 
             public int Rows { get; set; }
+            public string Style { get; set; }
             public IList<string> Options { get; set; }
 
             [Rock.Data.LavaIgnore]
