@@ -154,16 +154,15 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             ""ResponseValue"": """"
         },
         {
-            ""FieldName"": ""SubmissionConfirmation"",
-            ""AttributeKey"": ""SubmissionConfirmation"",
-            ""Prompt"": ""Thanks!"",
-            ""Helptext"": """",
-            ""Required"": false,
-            ""RequiredErrorText"": """",
+            ""FieldName"": ""Date"",
+            ""AttributeKey"": ""Date"",
+            ""Prompt"": ""Please enter a date"",
+            ""Helptext"": ""The Date of the thing"",
+            ""Required"": true,
+            ""RequiredErrorText"": ""The Date is Required"",
             ""PostbackOnChange"": false,
-            ""FieldType"": ""Literal"",
+            ""FieldType"": ""Date"",
             ""FieldConfiguration"": {
-                ""Rows"": 3
             },
             ""RevealCondition"": ""{% unless FormState.CurrentPage == 3 %}false{% else %}true{% endunless %}"",
             ""Order"": 0,
@@ -1218,6 +1217,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 
                 Guid activityTypeGuid = Guid.Empty;
                 //string responseText = "Your information has been submitted successfully.";
+
             }
             BuildForm(false);
         }
