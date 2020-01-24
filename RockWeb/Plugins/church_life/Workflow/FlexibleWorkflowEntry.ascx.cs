@@ -1188,20 +1188,18 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 action = _formState.Actions.Where( a => a.ActionName == formAction ).FirstOrDefault();
                 if ( action.StartWorkflow && _workflow == null )
                 {
-                    List<string> errorMessages = null;
                     // If you don't yet have the Workflow, and the Action should start it, start it.
                     _workflow = Rock.Model.Workflow.Activate( _workflowType, _workflowType.Name );
-                    if (_workflow != null)
-                    {
-                        _workflowService.Process(_workflow, out errorMessages);
-                    }
+                }
 
-                if ( _workflow != null)
+                if ( _workflow != null )
                 {
                     foreach (var field in _formState.Fields)
                     {
                         _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
                     }
+                    List<string> errorMessages;
+                    _workflowService.Process(_workflow, out errorMessages);
                 }
 
                 _formState.CurrentPage = action.DestinationPage;
