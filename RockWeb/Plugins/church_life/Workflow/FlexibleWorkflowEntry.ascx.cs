@@ -1275,7 +1275,52 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 {
                     foreach (var field in _formState.Fields)
                     {
-                        _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
+                        if ( field.FieldType == "Address" )
+                        {
+                            var addressValues = field.ResponseValue.FromJsonOrNull<AddressValue>();
+                            var rockContext = new RockContext();
+                            var locationService = new LocationService( rockContext );
+
+                            // Find if there's a matching Location record to the one being entered.
+                            var location = locationService.Queryable().Where( l =>
+                                l.Street1 == addressValues.Street1
+                                && l.Street2 == addressValues.Street2
+                                && l.City == addressValues.City
+                                && l.State == addressValues.State
+                                && l.PostalCode == addressValues.PostalCode
+                                && l.Country == addressValues.Country
+                            ).FirstOrDefault();
+
+                            if ( location != null )
+                            {
+                                // If the location value was found, then use that for the Workflow.
+                                _workflow.SetAttributeValue( field.AttributeKey, location.Guid );
+                            }
+                            else
+                            {
+                                // If the Location was NOT found, then create a Location record, and use that for the Workflow.
+                                var newLocationGuid = Guid.NewGuid();
+                                var newLocation = new Location
+                                {
+                                    Street1 = addressValues.Street1,
+                                    Street2 = addressValues.Street2,
+                                    City = addressValues.City,
+                                    State = addressValues.State,
+                                    PostalCode = addressValues.PostalCode,
+                                    Country = addressValues.Country,
+                                    Guid = newLocationGuid
+                                };
+
+                                locationService.Add( newLocation );
+                                rockContext.SaveChanges();
+
+                                _workflow.SetAttributeValue( field.AttributeKey, newLocationGuid);
+                            }
+                        }
+                        else
+                        {
+                            _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
+                        }
                     }
                     List<string> errorMessages;
                     _workflowService.Process(_workflow, out errorMessages);
