@@ -1219,8 +1219,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         fieldDropDown.Items.Clear();
                         phAttributes.Controls.Add(fieldDropDown);
 
-                        //if ( !fieldDropDown.Required )
-                            fieldDropDown.Items.Add( "" );
+                        fieldDropDown.Items.Add( "" );
                         foreach ( var option in field.FieldConfiguration.Options)
                         {
                             fieldDropDown.Items.Add( option );
