@@ -677,7 +677,15 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                                 {
                                     field.ResponseValue = ( ( RockDropDownList ) control ).SelectedValue ?? "";
                                 }
-                                catch { }
+                                catch
+                                {
+                                    try
+                                    {
+                                        var cbControl = ( ( RockCheckBoxList ) control );
+                                        field.ResponseValue = cbControl.SelectedValues.ToJson() ?? "";
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                     }
@@ -1223,7 +1231,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         break;
 
                     case "multibox":
-                        var fieldMultiBox = new RockDropDownList
+                        var fieldMultiBox = new RockCheckBoxList
                         {
                             ID = field.FieldName,
                             Label = field.Prompt.ResolveMergeFields(mergeFields),
@@ -1235,13 +1243,22 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
                         };
                         fieldMultiBox.Items.Clear();
+                        fieldMultiBox.SelectedValues.Clear();
                         phAttributes.Controls.Add(fieldMultiBox);
 
                         foreach ( var option in field.FieldConfiguration.Options)
                         {
                             fieldMultiBox.Items.Add( option );
                         }
-                        fieldMultiBox.SetValue( field.ResponseValue );
+
+                        var selectedValues = field.ResponseValue.FromJsonOrNull<List<string>>();
+                        if ( selectedValues != null && selectedValues.Count > 0)
+                        {
+                            foreach ( var item in fieldMultiBox.Items )
+                            {
+                                fieldMultiBox.Items.FindByText( item.ToString() ).Selected = ( selectedValues.Contains( item.ToString() ) );
+                            }
+                        }
 
                         _formControls.Add(fieldMultiBox);
                         break;
@@ -1279,14 +1296,15 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 phActions.Controls.Add(new LiteralControl(" "));
             }
 
+            //TODO: this is out of date, update to match the logic in the workflow start stuff.  Better yet, move into a method.
             // Set the Attribute Values in the Workflow to meet the current value of the _formState
-            if (_workflow != null)
-            {
-                foreach (var field in _formState.Fields)
-                {
-                    _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
-                }
-            }
+            //if (_workflow != null)
+            //{
+            //    foreach (var field in _formState.Fields)
+            //    {
+            //        _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
+            //    }
+            //}
         }
 
         private void ShowNotes(bool visible)
@@ -1357,7 +1375,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 {
                     foreach (var field in _formState.Fields)
                     {
-                        if ( field.FieldType == "Address" )
+                        if ( field.FieldType.ToLower() == "address" )
                         {
                             var addressValues = field.ResponseValue.FromJsonOrNull<AddressValue>();
                             var rockContext = new RockContext();
@@ -1399,9 +1417,17 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                                 _workflow.SetAttributeValue( field.AttributeKey, newLocationGuid);
                             }
                         }
+                        else if ( field.FieldType.ToLower() == "multibox" )
+                        {
+                            var multiSelectString = string.Empty;
+                            field.ResponseValue.FromJsonOrNull<List<string>>().ForEach( rv => multiSelectString = rv + "," + multiSelectString );
+                            multiSelectString = multiSelectString.ReplaceLastOccurrence( ",", "" );
+
+                            _workflow.SetAttributeValue( field.AttributeKey, multiSelectString );
+                        }
                         else
                         {
-                            _workflow.SetAttributeValue(field.AttributeKey, field.ResponseValue);
+                            _workflow.SetAttributeValue( field.AttributeKey, field.ResponseValue );
                         }
                     }
                     List<string> errorMessages;
