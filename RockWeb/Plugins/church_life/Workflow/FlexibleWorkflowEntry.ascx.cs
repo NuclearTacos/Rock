@@ -671,7 +671,14 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             {
                                 field.ResponseValue = ( ( SSNBox ) control ).TextEncrypted ?? "";
                             }
-                            catch { }
+                            catch
+                            {
+                                try
+                                {
+                                    field.ResponseValue = ( ( RockDropDownList ) control ).SelectedValue ?? "";
+                                }
+                                catch { }
+                            }
                         }
                     }
                 }
@@ -1188,13 +1195,58 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
                         _formControls.Add(fieldRadio);
                         break;
+
+                    case "dropdown":
+                        var fieldDropDown = new RockDropDownList
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup,
+                            AutoPostBack = field.PostbackOnChange,
+                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
+                        };
+                        fieldDropDown.Items.Clear();
+                        phAttributes.Controls.Add(fieldDropDown);
+
+                        //if ( !fieldDropDown.Required )
+                            fieldDropDown.Items.Add( "" );
+                        foreach ( var option in field.FieldConfiguration.Options)
+                        {
+                            fieldDropDown.Items.Add( option );
+                        }
+                        fieldDropDown.SetValue( field.ResponseValue );
+
+                        _formControls.Add(fieldDropDown);
+                        break;
+
+                    case "multibox":
+                        var fieldMultiBox = new RockDropDownList
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup,
+                            AutoPostBack = field.PostbackOnChange,
+                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
+                        };
+                        fieldMultiBox.Items.Clear();
+                        phAttributes.Controls.Add(fieldMultiBox);
+
+                        foreach ( var option in field.FieldConfiguration.Options)
+                        {
+                            fieldMultiBox.Items.Add( option );
+                        }
+                        fieldMultiBox.SetValue( field.ResponseValue );
+
+                        _formControls.Add(fieldMultiBox);
+                        break;
                 }
             }
-
-            //foreach (var control in _formControls)
-            //{
-            //    phAttributes.Controls.Add(control);
-            //}
 
             ShowNotes(false);
 
