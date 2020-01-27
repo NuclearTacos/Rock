@@ -684,7 +684,14 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                                         var cbControl = ( ( RockCheckBoxList ) control );
                                         field.ResponseValue = cbControl.SelectedValues.ToJson() ?? "";
                                     }
-                                    catch { }
+                                    catch
+                                    {
+                                        try
+                                        {
+                                            field.ResponseValue = ( ( PhoneNumberBox ) control ).Number ?? "";
+                                        }
+                                        catch { }
+                                    }
                                 }
                             }
                         }
@@ -1116,6 +1123,25 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         phAttributes.Controls.Add(fieldEmail);
 
                         _formControls.Add(fieldEmail);
+                        break;
+
+                    case "phonenumber":
+                        var fieldPhoneNumber = new PhoneNumberBox
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup, 
+                            Text = field.ResponseValue,
+                            CountryCode = "1",
+                            AutoPostBack = field.PostbackOnChange,
+                            Visible = fieldIsVisible
+                        };
+                        phAttributes.Controls.Add(fieldPhoneNumber);
+
+                        _formControls.Add(fieldPhoneNumber);
                         break;
 
                     case "ssn":
