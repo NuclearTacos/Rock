@@ -92,6 +92,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             ""FieldType"": ""Radio"",
             ""FieldConfiguration"": {
                 ""Rows"": 1,
+                ""Style"": """",
                 ""Options"": [
                     ""Agree"",
                     ""Disagree""
@@ -641,21 +642,6 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 try
                 {
                     var addressControl = ( ( AddressControl ) controlTest );
-                    //                    field.ResponseValue = String.Format( @"{
-                    //    ""Street1"": ""{0}"",
-                    //    ""Street2"": ""{1}"",
-                    //    ""City"": ""{2}"",
-                    //    ""State"": ""{3}"",
-                    //    ""Country"": ""{4}"",
-                    //    ""PostalCode"": ""{5}""
-                    //}"
-                    //    , addressControl.Street1    .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //    , addressControl.Street2    .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //    , addressControl.City       .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //    , addressControl.State      .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //    , addressControl.Country    .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //    , addressControl.PostalCode .Replace("\\", "\\\\").Replace("\"", "\\\"")
-                    //);
                     var addressValues = new AddressValue
                     {
                         Street1 = addressControl.Street1,
@@ -1081,7 +1067,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             Help = field.HelpText,
                             Required = field.Required && fieldIsVisible,
                             RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
+                            ValidationGroup = BlockValidationGroup, 
                             Text = field.ResponseValue,
                             TextMode = field.FieldConfiguration.Rows > 1  ? TextBoxMode.MultiLine : TextBoxMode.SingleLine,
                             Rows = field.FieldConfiguration.Rows,
@@ -1091,6 +1077,24 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         phAttributes.Controls.Add(fieldText);
 
                         _formControls.Add(fieldText);
+                        break;
+
+                    case "email":
+                       var fieldEmail = new EmailBox
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup, 
+                            Text = field.ResponseValue,
+                            AutoPostBack = field.PostbackOnChange,
+                            Visible = fieldIsVisible
+                        };
+                        phAttributes.Controls.Add(fieldEmail);
+
+                        _formControls.Add(fieldEmail);
                         break;
 
                     case "date":
