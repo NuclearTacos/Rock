@@ -638,10 +638,10 @@ namespace RockWeb.Plugins.church_life.WorkFlow
         {
             foreach ( var field in _formState.Fields)
             {
-                var controlTest = phAttributes.FindControl( field.FieldName );
+                var control = phAttributes.FindControl( field.FieldName );
                 try
                 {
-                    var addressControl = ( ( AddressControl ) controlTest );
+                    var addressControl = ( ( AddressControl ) control );
                     var addressValues = new AddressValue
                     {
                         Street1 = addressControl.Street1,
@@ -657,16 +657,22 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 { 
                     try
                     {
-                        field.ResponseValue = ( ( RockTextBox ) controlTest ).Text ?? "";
+                        field.ResponseValue = ( ( RockTextBox ) control ).Text ?? "";
                     }
                     catch
                     {
                         try
                         {
-                            field.ResponseValue = ( ( RockRadioButtonList ) controlTest ).SelectedValue ?? "";
+                            field.ResponseValue = ( ( RockRadioButtonList ) control ).SelectedValue ?? "";
                         }
                         catch
-                        { }
+                        {
+                            try
+                            {
+                                field.ResponseValue = ( ( SSNBox ) control ).TextEncrypted ?? "";
+                            }
+                            catch { }
+                        }
                     }
                 }
             }
@@ -1080,7 +1086,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         break;
 
                     case "email":
-                       var fieldEmail = new EmailBox
+                        var fieldEmail = new EmailBox
                         {
                             ID = field.FieldName,
                             Label = field.Prompt.ResolveMergeFields(mergeFields),
@@ -1095,6 +1101,24 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         phAttributes.Controls.Add(fieldEmail);
 
                         _formControls.Add(fieldEmail);
+                        break;
+
+                    case "ssn":
+                        var fieldSsn = new SSNBox
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup, 
+                            TextEncrypted = field.ResponseValue,
+                            //AutoPostBack = field.PostbackOnChange,
+                            Visible = fieldIsVisible
+                        };
+                        phAttributes.Controls.Add(fieldSsn);
+
+                        _formControls.Add(fieldSsn);
                         break;
 
                     case "date":
