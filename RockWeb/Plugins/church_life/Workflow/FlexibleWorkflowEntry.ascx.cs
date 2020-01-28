@@ -641,56 +641,63 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 var control = phAttributes.FindControl( field.FieldName );
                 try
                 {
-                    var addressControl = ( ( AddressControl ) control );
-                    var addressValues = new AddressValue
-                    {
-                        Street1 = addressControl.Street1,
-                        Street2 = addressControl.Street2,
-                        City = addressControl.City,
-                        State = addressControl.State,
-                        Country = addressControl.Country,
-                        PostalCode = addressControl.PostalCode
-                    };
-                    field.ResponseValue = addressValues.ToJson();
+                    field.ResponseValue = ( ( CampusPicker ) control ).SelectedCampusId.ToString() ?? "";
                 }
                 catch
-                { 
+                {
                     try
                     {
-                        field.ResponseValue = ( ( RockTextBox ) control ).Text ?? "";
+                        var addressControl = ( ( AddressControl ) control );
+                        var addressValues = new AddressValue
+                        {
+                            Street1 = addressControl.Street1,
+                            Street2 = addressControl.Street2,
+                            City = addressControl.City,
+                            State = addressControl.State,
+                            Country = addressControl.Country,
+                            PostalCode = addressControl.PostalCode
+                        };
+                        field.ResponseValue = addressValues.ToJson();
                     }
                     catch
-                    {
+                    { 
                         try
                         {
-                            field.ResponseValue = ( ( RockRadioButtonList ) control ).SelectedValue ?? "";
+                            field.ResponseValue = ( ( RockTextBox ) control ).Text ?? "";
                         }
                         catch
                         {
                             try
                             {
-                                field.ResponseValue = ( ( SSNBox ) control ).TextEncrypted ?? "";
+                                field.ResponseValue = ( ( RockRadioButtonList ) control ).SelectedValue ?? "";
                             }
                             catch
                             {
                                 try
                                 {
-                                    field.ResponseValue = ( ( RockDropDownList ) control ).SelectedValue ?? "";
+                                    field.ResponseValue = ( ( SSNBox ) control ).TextEncrypted ?? "";
                                 }
                                 catch
                                 {
                                     try
                                     {
-                                        var cbControl = ( ( RockCheckBoxList ) control );
-                                        field.ResponseValue = cbControl.SelectedValues.ToJson() ?? "";
+                                        field.ResponseValue = ( ( RockDropDownList ) control ).SelectedValue ?? "";
                                     }
                                     catch
                                     {
                                         try
                                         {
-                                            field.ResponseValue = ( ( PhoneNumberBox ) control ).Number ?? "";
+                                            var cbControl = ( ( RockCheckBoxList ) control );
+                                            field.ResponseValue = cbControl.SelectedValues.ToJson() ?? "";
                                         }
-                                        catch { }
+                                        catch
+                                        {
+                                            try
+                                            {
+                                                field.ResponseValue = ( ( PhoneNumberBox ) control ).Number ?? "";
+                                            }
+                                            catch { }
+                                        }
                                     }
                                 }
                             }
@@ -1257,6 +1264,35 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
                         _formControls.Add(fieldDropDown);
                         break;
+
+                    //case "campus":
+                    //    int selectedCampusId = 0;
+                    //    int.TryParse( field.ResponseValue, out selectedCampusId );
+
+                    //    var fieldCampus = new CampusPicker
+                    //    {
+                    //        ID = field.FieldName,
+                    //        Label = field.Prompt.ResolveMergeFields(mergeFields),
+                    //        Help = field.HelpText,
+                    //        Required = field.Required && fieldIsVisible,
+                    //        RequiredErrorMessage = field.RequiredErrorText,
+                    //        ValidationGroup = BlockValidationGroup,
+                    //        AutoPostBack = field.PostbackOnChange,
+                    //        Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true"),
+                    //        SelectedCampusId = selectedCampusId
+                    //    };
+                    //    //fieldCampus.Items.Clear();
+                    //    phAttributes.Controls.Add(fieldCampus);
+
+                    //    //fieldDropDown.Items.Add( "" );
+                    //    //foreach ( var option in field.FieldConfiguration.Options)
+                    //    //{
+                    //    //    fieldDropDown.Items.Add( option );
+                    //    //}
+                    //    //fieldDropDown.SetValue( field.ResponseValue );
+
+                    //    _formControls.Add(fieldCampus);
+                    //    break;
 
                     case "multibox":
                         var fieldMultiBox = new RockCheckBoxList
