@@ -820,7 +820,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 }
                 if ( _workflow != null )
                 {
-                    hlblWorkflowId.Text = _workflow.WorkflowId;
+                    //hlblWorkflowId.Text = _workflow.WorkflowId;
 
                     _workflow.LoadAttributes();
                     foreach ( var activity in _workflow.Activities )
@@ -1059,14 +1059,14 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             //    lFootingText.Text = form.Footer.ResolveMergeFields(mergeFields);
             //}
 
-            if (_workflow != null && _workflow.CreatedDateTime.HasValue)
-            {
-                hlblDateAdded.Text = String.Format("Added: {0}", _workflow.CreatedDateTime.Value.ToShortDateString());
-            }
-            else
-            {
-                hlblDateAdded.Visible = false;
-            }
+            //if (_workflow != null && _workflow.CreatedDateTime.HasValue)
+            //{
+            //    hlblDateAdded.Text = String.Format("Added: {0}", _workflow.CreatedDateTime.Value.ToShortDateString());
+            //}
+            //else
+            //{
+            //    hlblDateAdded.Visible = false;
+            //}
 
             phAttributes.Controls.Clear();
              _formControls.Clear();
@@ -1538,7 +1538,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 }
             }
 
-            lTitle.Text = blockTitle;
+            //lTitle.Text = blockTitle;
 
             // Set the Page Title to the Workflow Type name, unless the Workflow Type has been specified by a configuration setting.
             if ( _workflowType != null && !ConfiguredType )
@@ -1559,7 +1559,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
             if ( !string.IsNullOrWhiteSpace( blockTitleIconCssClass ) )
             {
-                lIconHtml.Text = string.Format( "<i class='{0}' ></i>", blockTitleIconCssClass );
+                //lIconHtml.Text = string.Format( "<i class='{0}' ></i>", blockTitleIconCssClass );
 
                 // If the Page Icon is not configured, set it to the same icon as the block.
                 if ( string.IsNullOrWhiteSpace( RockPage.PageIcon ) )
