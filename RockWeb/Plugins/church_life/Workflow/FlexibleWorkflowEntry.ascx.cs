@@ -1079,15 +1079,11 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 switch ( field.FieldType.ToLower() )
                 {
                     case "literal":
-                        //var fieldLiteral = new NotificationBox
-                        //{
-                        //    ID = field.FieldName,
-                        //    Text = field.Prompt.ResolveMergeFields(mergeFields),
-                        //    Visible = fieldIsVisible
-                        //};
                         var fieldLiteral = new LiteralControl
                         {
-                            Text = field.Prompt
+                            ID = field.FieldName,
+                            Text = field.Prompt.ResolveMergeFields(mergeFields),
+                            Visible = fieldIsVisible
                         };
                         phAttributes.Controls.Add(fieldLiteral);
 
