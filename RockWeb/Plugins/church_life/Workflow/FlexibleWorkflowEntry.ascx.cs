@@ -1079,12 +1079,19 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 switch ( field.FieldType.ToLower() )
                 {
                     case "literal":
-                        var fieldLiteral = new NotificationBox
+                        //var fieldLiteral = new NotificationBox
+                        //{
+                        //    ID = field.FieldName,
+                        //    Text = field.Prompt.ResolveMergeFields(mergeFields),
+                        //    Visible = fieldIsVisible
+                        //};
+                        var fieldLiteral = new LiteralControl
                         {
-                            ID = field.FieldName,
-                            Text = field.Prompt.ResolveMergeFields(mergeFields),
-                            Visible = fieldIsVisible
+                            Text = field.Prompt
                         };
+                        phAttributes.Controls.Add(fieldLiteral);
+
+                        _formControls.Add(fieldLiteral);
                         break;
 
                     case "text":
@@ -1197,7 +1204,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             Street2 = addressValues != null ? addressValues.Street2 : "",
                             City = addressValues != null ? addressValues.City : "",
                             State = addressValues != null ? addressValues.State : "",
-                            Country = addressValues != null ? addressValues.Country : "",
+                            Country = addressValues != null ? addressValues.Country : "US",
                             PostalCode = addressValues != null ? addressValues.PostalCode : ""
                         };
                         phAttributes.Controls.Add(fieldAddress);
@@ -1454,6 +1461,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         {
                             _workflow.SetAttributeValue( field.AttributeKey, field.ResponseValue );
                         }
+
+                        _workflow.SetAttributeValue("FormState", _formState.ToJson() );
                     }
                     List<string> errorMessages;
                     _workflowService.Process(_workflow, out errorMessages);
