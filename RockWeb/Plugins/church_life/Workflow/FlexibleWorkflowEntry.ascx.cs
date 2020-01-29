@@ -1265,34 +1265,28 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                         _formControls.Add(fieldDropDown);
                         break;
 
-                    //case "campus":
-                    //    int selectedCampusId = 0;
-                    //    int.TryParse( field.ResponseValue, out selectedCampusId );
+                    case "campus":
+                        int selectedCampusId = 0;
+                        int.TryParse(field.ResponseValue, out selectedCampusId);
 
-                    //    var fieldCampus = new CampusPicker
-                    //    {
-                    //        ID = field.FieldName,
-                    //        Label = field.Prompt.ResolveMergeFields(mergeFields),
-                    //        Help = field.HelpText,
-                    //        Required = field.Required && fieldIsVisible,
-                    //        RequiredErrorMessage = field.RequiredErrorText,
-                    //        ValidationGroup = BlockValidationGroup,
-                    //        AutoPostBack = field.PostbackOnChange,
-                    //        Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true"),
-                    //        SelectedCampusId = selectedCampusId
-                    //    };
-                    //    //fieldCampus.Items.Clear();
-                    //    phAttributes.Controls.Add(fieldCampus);
+                        var fieldCampus = new CampusPicker
+                        {
+                            ID = field.FieldName,
+                            Label = field.Prompt.ResolveMergeFields(mergeFields),
+                            Help = field.HelpText,
+                            Required = field.Required && fieldIsVisible,
+                            RequiredErrorMessage = field.RequiredErrorText,
+                            ValidationGroup = BlockValidationGroup,
+                            AutoPostBack = field.PostbackOnChange,
+                            IncludeInactive = false,
+                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true"),
+                            SelectedCampusId = selectedCampusId, 
+                        };
+                        //fieldCampus.Items.Clear();
+                        phAttributes.Controls.Add(fieldCampus);
 
-                    //    //fieldDropDown.Items.Add( "" );
-                    //    //foreach ( var option in field.FieldConfiguration.Options)
-                    //    //{
-                    //    //    fieldDropDown.Items.Add( option );
-                    //    //}
-                    //    //fieldDropDown.SetValue( field.ResponseValue );
-
-                    //    _formControls.Add(fieldCampus);
-                    //    break;
+                        _formControls.Add(fieldCampus);
+                        break;
 
                     case "multibox":
                         var fieldMultiBox = new RockCheckBoxList
@@ -1488,6 +1482,16 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             multiSelectString = multiSelectString.ReplaceLastOccurrence( ",", "" );
 
                             _workflow.SetAttributeValue( field.AttributeKey, multiSelectString );
+                        }
+                        else if (field.FieldType.ToLower() == "campus")
+                        {
+                            var campusId = 0;
+                            int.TryParse( field.ResponseValue, out campusId );
+                            if ( campusId > 0 )
+                            {
+                                var campusGuid = CampusCache.Get( campusId ).Guid.ToStringSafe();
+                                _workflow.SetAttributeValue( field.AttributeKey, campusGuid ?? "" );
+                            }
                         }
                         else
                         {
