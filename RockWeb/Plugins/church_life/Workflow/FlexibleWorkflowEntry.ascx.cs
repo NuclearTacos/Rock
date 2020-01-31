@@ -602,9 +602,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 {
                     var configJson = GetAttributeValue( AttributeKey.WorkflowFieldConfiguration );
                     _formState = configJson.FromJsonOrNull<FormState>();
-                    //lSummary.Visible = true;
-                    //lSummary.Visible = false;
-                    //lSummary.Text = JsonConvert.SerializeObject( _formState );
+
+
                 }
                 catch { }
 
