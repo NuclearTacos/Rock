@@ -604,6 +604,17 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                     _formState = configJson.FromJsonOrNull<FormState>();
 
 
+                    // Once the _formState is initialized from the default setting,
+                    // update all Response Values if their Page Parameter has been defined.
+                    foreach ( var field in _formState.Fields )
+                    {
+                        var param = PageParameter(field.FieldName);
+
+                        if ( param != "" )
+                        {
+                            field.ResponseValue = param;
+                        }
+                    }
                 }
                 catch { }
 
