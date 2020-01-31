@@ -596,33 +596,64 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
             nbMessage.Visible = false;
 
+            
+
             if ( !Page.IsPostBack )
             {
+                var workflowGuid = PageParameter("WorkflowGuid").AsGuidOrNull();
+                if (workflowGuid != null)
+                {
+                    var rockContext = new RockContext();
+                    var workflowService = new WorkflowService(rockContext);
+
+                    _workflow = workflowService.Get((Guid)workflowGuid);
+                }
+
                 try
                 {
                     var configJson = GetAttributeValue( AttributeKey.WorkflowFieldConfiguration );
                     _formState = configJson.FromJsonOrNull<FormState>();
 
 
-                    // Once the _formState is initialized from the default setting,
-                    // update all Response Values if their Page Parameter has been defined.
-                    foreach ( var field in _formState.Fields )
+                    // Now that the _formState is initialized, we'll retrieve ResponseValues from the _workflow if
+                    // it's defined, but the URL if the _workflow doesn't exist.
+                    if ( _workflow != null )
                     {
-                        var param = PageParameter(field.FieldName);
+                        _workflow.LoadAttributes();
 
-                        if ( param != "" )
+                        // Update all Response Values if the Workflow has a matching Attribute that isn't empty.
+                        foreach ( var field in _formState.Fields)
                         {
-                            field.ResponseValue = param;
+                            var attributeValue = _workflow.GetAttributeValue(field.AttributeKey) ?? "";
+
+                            if (attributeValue != "")
+                            {
+                                field.ResponseValue = attributeValue;
+                            }
                         }
                     }
+                    else
+                    {
+                        // Once the _formState is initialized from the default setting,
+                        // update all Response Values if their Page Parameter has been defined, as long
+                        // as the field isn't a "literal" field
+                        foreach (var field in _formState.Fields.Where( f => f.FieldType.ToLower() != "literal" ) )
+                        {
+                            var param = PageParameter(field.FieldName);
+
+                            if (param != "")
+                            {
+                                field.ResponseValue = param;
+                            }
+                        }
+                    }
+
+                     
                 }
                 catch { }
 
-                {
-                    //ProcessActionRequest();
-                    UpdateFieldsList();
-                    BuildForm( true );
-                }
+                UpdateFieldsList();
+                BuildForm( true );
             }
             else
             {
@@ -1433,6 +1464,16 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             if ( !string.IsNullOrWhiteSpace( formAction ) )
             {
                 action = _formState.Actions.Where( a => a.ActionName == formAction ).FirstOrDefault();
+
+                var workflowGuid = PageParameter("WorkflowGuid").AsGuidOrNull();
+                if (workflowGuid != null)
+                {
+                    var rockContext = new RockContext();
+                    var workflowService = new WorkflowService(rockContext);
+
+                    _workflow = workflowService.Get((Guid)workflowGuid);
+                }
+
                 if ( action.StartWorkflow && _workflow == null )
                 {
                     // If you don't yet have the Workflow, and the Action should start it, start it.
