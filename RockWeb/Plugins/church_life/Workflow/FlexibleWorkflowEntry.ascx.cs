@@ -110,7 +110,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             ""Required"": true,
             ""RequiredErrorText"": ""Please explain your response to question 1"",
             ""PostbackOnChange"": false,
-            ""FieldType"": ""Memo"",
+            ""FieldType"": ""Text"",
             ""FieldConfiguration"": {
                 ""Rows"": 3
             },
