@@ -1482,6 +1482,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
                 if ( _workflow != null )
                 {
+                    _workflow.LoadAttributes();
+
                     foreach (var field in _formState.Fields)
                     {
                         if ( field.FieldType.ToLower() == "address" )
@@ -1549,8 +1551,9 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             _workflow.SetAttributeValue( field.AttributeKey, field.ResponseValue );
                         }
 
-                        _workflow.SetAttributeValue("FormState", _formState.ToJson() );
                     }
+                    _workflow.SetAttributeValue("FormState", _formState.ToJson() );
+
                     List<string> errorMessages;
                     _workflowService.Process(_workflow, out errorMessages);
                 }
