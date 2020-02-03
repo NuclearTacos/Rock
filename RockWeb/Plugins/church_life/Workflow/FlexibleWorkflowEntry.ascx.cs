@@ -332,8 +332,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             public int HtmlButtonValueId { get; set; }
             public string RevealCondition { get; set; }
             public int DestinationPage { get; set; }
-            public int[] ActivityActivate { get; set; } // Not implemented
-            public int[] ActivityComplete { get; set; } // Not implemented
+            public List<int> ActivityActivate { get; set; } // Not implemented
+            public List<int> ActivityComplete { get; set; } // Not implemented
             public bool StartWorkflow { get; set; }
             public bool GoToSuccessPage { get; set; }
             public int Order { get; set; }
