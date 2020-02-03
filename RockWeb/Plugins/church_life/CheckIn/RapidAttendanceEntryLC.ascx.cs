@@ -38,6 +38,7 @@ namespace RockWeb.Plugins.church_life.CheckIn
     [GroupField( "Parent Group", "Select the parent group whose immediate children will be displayed as options to take attendance for.", required: true, order: 0 )]
     [BooleanField( "Include Parent Group", "If true then the parent group will be included as an option in addition to its children.", false, order: 1 )]
     [BooleanField( "Default Show Current Attendees", "Should the Current Attendees grid be visible by default. When the grid is enabled performance will be reduced.", false, order: 1 )]
+    [BooleanField("AcceptPageParameter", "Should the group block accept group Ids from the querystring.", true, order: 2)]
     public partial class RapidAttendanceEntryLC : RockBlock
     {
         #region Base Method Overrides
@@ -104,36 +105,53 @@ namespace RockWeb.Plugins.church_life.CheckIn
             ddlGroup.Items.Add( new ListItem() );
 
             //
-            // Get the list of groups to be displayed in the picker.
+            // Set the group ID based on the page parameter.
             //
-            if ( parentGroup != null )
+            if (GetAttributeValue("AcceptPageParameter").AsBoolean(false) && PageParameter("GroupId") != null)
             {
-                groups = parentGroup.Groups.Where( g => g.IsActive ).OrderBy( g => g.Order ).ToList();
+                int? groupId = PageParameter("GroupId").AsIntegerOrNull();
+                Group paramGroup = null;
+                if (groupId != null) paramGroup = new GroupService(rockContext).Get((int)groupId);
 
-                if ( GetAttributeValue( "IncludeParentGroup" ).AsBoolean( false ) )
-                {
-                    groups.Insert( 0, parentGroup );
-                }
-            }
 
-            //
-            // Add all the groups to the drop down list.
-            //
-            foreach ( var group in groups )
-            {
-                ddlGroup.Items.Add( new ListItem( group.Name, group.Id.ToString() ) );
-            }
-
-            //
-            // If there is only one group then select it, otherwise show the picker and let the user select.
-            //
-            if ( groups.Count == 1 )
-            {
+                ddlGroup.Items.Add(new ListItem(paramGroup.Name, paramGroup.Id.ToString()));
                 ddlGroup.SelectedIndex = 1;
+                ddlGroup.Enabled = false;
             }
             else
             {
-                pnlGroupPicker.Visible = true;
+                //
+                // Get the list of groups to be displayed in the picker.
+                //
+                if (parentGroup != null)
+                {
+                    groups = parentGroup.Groups.Where(g => g.IsActive).OrderBy(g => g.Order).ToList();
+
+                    if (GetAttributeValue("IncludeParentGroup").AsBoolean(false))
+                    {
+                        groups.Insert(0, parentGroup);
+                    }
+                }
+
+                //
+                // Add all the groups to the drop down list.
+                //
+                foreach (var group in groups)
+                {
+                    ddlGroup.Items.Add(new ListItem(group.Name, group.Id.ToString()));
+                }
+
+                //
+                // If there is only one group then select it, otherwise show the picker and let the user select.
+                //
+                if (groups.Count == 1)
+                {
+                    ddlGroup.SelectedIndex = 1;
+                }
+                else
+                {
+                    pnlGroupPicker.Visible = true;
+                }
             }
 
             UpdateLocations();
@@ -177,6 +195,7 @@ namespace RockWeb.Plugins.church_life.CheckIn
                 if ( groupLocations.Count == 1 )
                 {
                     ddlLocation.SelectedIndex = 1;
+                    ddlLocation.Enabled = false;
                 }
                 else
                 {
