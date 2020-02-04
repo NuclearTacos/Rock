@@ -1498,6 +1498,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             _workflow.SetAttributeValue( field.AttributeKey, field.ResponseValue );
                         }
 
+                        //TODO: make it so that the SSN isn't saved to the Workflow, but will be retained in the viewstate.
+                        foreach ( var ssnField in _formState.Fields.Where( f => f.FieldType.ToLower() == "ssn" ) ) ssnField.ResponseValue = null;
                         _workflow.SetAttributeValue("FormState", _formState.ToJson() );
                     }
                     List<string> errorMessages;
