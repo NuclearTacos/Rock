@@ -572,26 +572,29 @@ namespace RockWeb.Plugins.church_life.WorkFlow
 
         protected void InitializePhAttributes()
         {
-            //var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields(this.RockPage, this.CurrentPerson);
-            //mergeFields.Add("Action", _action);
-            //mergeFields.Add("Activity", _activity);
-            //mergeFields.Add("Workflow", _workflow);
+            var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields(this.RockPage, this.CurrentPerson);
+            mergeFields.Add("Action", _action);
+            mergeFields.Add("Activity", _activity);
+            mergeFields.Add("Workflow", _workflow);
 
-            //mergeFields.Add("FormState", _formState);
-            //foreach (var field in _formState.Fields)
-            //{
-            //    mergeFields.Add(field.FieldName, field);
-            //}
+            mergeFields.Add("FormState", _formState);
+            foreach (var field in _formState.Fields)
+            {
+                mergeFields.Add(field.FieldName, field);
+            }
 
             phAttributes.Controls.Clear();
             foreach (Field field in _formState.Fields.OrderBy(f => f.Order) )
             {
+                var fieldIsVisible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
                 switch (field.FieldType.ToLower())
                 {
                     case "literal":
                         var fieldLiteral = new LiteralControl
                         {
-                            ID = field.FieldName
+                            ID = field.FieldName,
+                            Text = field.Prompt.ResolveMergeFields(mergeFields),
+                            Visible = fieldIsVisible
                         };
                         phAttributes.Controls.Add(fieldLiteral);
                         break;
@@ -1306,8 +1309,8 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                                Visible = fieldIsVisible
                             };
 
-                            List<string> ssnParts = new List<string>();
-                            ssnParts.AddRange(fieldSsn.Text.Split(new char[] { '-' }));
+                            //List<string> ssnParts = new List<string>();
+                            //ssnParts.AddRange(fieldSsn.Text.Split(new char[] { '-' }));
 
                             //if (ssnParts.Count == 3)
                             //{
@@ -1502,14 +1505,26 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                     var control = phAttributes.FindControl( field.FieldName );
                     if ( control != null )
                     {
-                        control.Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
-                        //TODO: update to fieldisvisible
+                        control.Visible = fieldIsVisible;
 
-                        if ( control is IRockControl)
+                        if (control is IRockControl)
                         {
                             var rockControl = (IRockControl)control;
                             rockControl.Label = field.Prompt.ResolveMergeFields(mergeFields);
                             rockControl.Required = field.Required && fieldIsVisible;
+
+                            if ( rockControl is RockRadioButtonList )
+                            {
+                                var rrblControl = (RockRadioButtonList)control;
+                                rrblControl.AutoPostBack = field.PostbackOnChange;
+
+                                // If there's more items in the control than in the configuration, that means there's the default "None" option.
+                                if ( rrblControl.Items.Count - 1 == field.FieldConfiguration.Options.Count)
+                                {
+                                    // If there's the "None" option, remove it.
+                                    rrblControl.Items.RemoveAt(0);
+                                }
+                            }
                         }
                     }
                 }
