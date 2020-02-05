@@ -561,12 +561,153 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             var formState = ( string ) ViewState["FormState"];
             _formState = formState.FromJsonOrNull<FormState>();
 
-            BuildForm(false);
+            InitializePhAttributes();
+            BuildForm( false );
 
             //if (HydrateObjects())
             //{
             //    BuildForm(false);
             //}
+        }
+
+        protected void InitializePhAttributes()
+        {
+            //var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields(this.RockPage, this.CurrentPerson);
+            //mergeFields.Add("Action", _action);
+            //mergeFields.Add("Activity", _activity);
+            //mergeFields.Add("Workflow", _workflow);
+
+            //mergeFields.Add("FormState", _formState);
+            //foreach (var field in _formState.Fields)
+            //{
+            //    mergeFields.Add(field.FieldName, field);
+            //}
+
+            phAttributes.Controls.Clear();
+            foreach (Field field in _formState.Fields.OrderBy(f => f.Order) )
+            {
+                switch (field.FieldType.ToLower())
+                {
+                    case "literal":
+                        var fieldLiteral = new LiteralControl
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldLiteral);
+                        break;
+
+                    case "text":
+                        var fieldText = new RockTextBox
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldText);
+                        break;
+
+                    case "email":
+                        var fieldEmail = new EmailBox
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldEmail);
+                        break;
+
+                    case "phonenumber":
+                        var fieldPhoneNumber = new PhoneNumberBox
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldPhoneNumber);
+                        break;
+
+                    case "ssn":
+                        var fieldSsn = new SSNBox
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldSsn);
+                        break;
+
+                    case "date":
+                        var fieldDate = new DatePicker
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldDate);
+                        break;
+
+                    case "address":
+                        var fieldAddress = new AddressControl
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldAddress);
+                        break;
+
+                    case "radio":
+                        var fieldRadio = new RockRadioButtonList
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldRadio);
+                        break;
+
+                    case "dropdown":
+                        var fieldDropDown = new RockDropDownList
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldDropDown);
+                        break;
+
+                    case "campus":
+                        var fieldCampus = new CampusPicker
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldCampus);
+                        break;
+
+                    case "multibox":
+                        var fieldMultiBox = new RockCheckBoxList
+                        {
+                            ID = field.FieldName
+                        };
+                        phAttributes.Controls.Add(fieldMultiBox);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            phActions.Controls.Clear();
+            var visibleActions = _formState.Actions;
+            //var visibleActions = _formState.Actions.Where(a => a.RevealCondition.ResolveMergeFields(mergeFields).ToLower() == "true").OrderBy(a => a.Order);
+            foreach (var action in visibleActions)
+            {
+                string buttonHtml = string.Empty;
+                var buttonDefinedValue = DefinedValueCache.Get(action.HtmlButtonValueId);
+                if (buttonDefinedValue != null)
+                {
+                    buttonHtml = buttonDefinedValue.GetAttributeValue("ButtonHTML");
+                }
+
+                if (string.IsNullOrWhiteSpace(buttonHtml))
+                {
+                    buttonHtml = "<a href=\"{{ ButtonLink }}\" onclick=\"{{ ButtonClick }}\" class='btn btn-primary' data-loading-text='<i class=\"fa fa-refresh fa-spin\"></i> {{ ButtonText }}'>{{ ButtonText }}</a>";
+                }
+
+                var buttonMergeFields = new Dictionary<string, object>();
+                buttonMergeFields.Add("ButtonText", action.ButtonText.EncodeHtml());
+                buttonMergeFields.Add("ButtonClick",
+                        string.Format("if ( Page_ClientValidate('{0}') ) {{ $(this).button('loading'); return true; }} else {{ return false; }}",
+                        BlockValidationGroup));
+                buttonMergeFields.Add("ButtonLink", Page.ClientScript.GetPostBackClientHyperlink(this, action.ActionName));
+
+                buttonHtml = buttonHtml.ResolveMergeFields(buttonMergeFields);
+                phActions.Controls.Add(new LiteralControl(buttonHtml));
+                phActions.Controls.Add(new LiteralControl(" "));
+            }
         }
 
         /// <summary>
@@ -602,22 +743,16 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                 {
                     var configJson = GetAttributeValue( AttributeKey.WorkflowFieldConfiguration );
                     _formState = configJson.FromJsonOrNull<FormState>();
-                    //lSummary.Visible = true;
-                    //lSummary.Visible = false;
-                    //lSummary.Text = JsonConvert.SerializeObject( _formState );
                 }
                 catch { }
 
-                {
-                    //ProcessActionRequest();
-                    UpdateFieldsList();
-                    BuildForm( true );
-                }
+                UpdateFieldsList();
+                BuildForm( true );
             }
             else
             {
                 UpdateFieldsList();
-                BuildForm(true);
+                BuildForm( false );
             }
         }
 
@@ -675,7 +810,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                             {
                                 try
                                 {
-                                    field.ResponseValue = ( ( SSNBox ) control ).TextEncrypted ?? "";
+                                    field.ResponseValue = ( ( SSNBox ) control ).Text ?? "";
                                 }
                                 catch
                                 {
@@ -756,6 +891,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
         /// <param name="eventArgument">A <see cref="T:System.String" /> that represents an optional event argument to be passed to the event handler.</param>
         public void RaisePostBackEvent( string eventArgument )
         {
+            //BuildForm(false); // Trying in case the form needs to be built before the values can be gotten.
             GetFormValues();
             CompleteFormAction( eventArgument );
         }
@@ -1045,7 +1181,7 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             }
         }
 
-        private void BuildForm( bool setValues )
+        private void BuildForm( bool initForm )
         {
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
             mergeFields.Add("Action", _action);
@@ -1075,259 +1211,313 @@ namespace RockWeb.Plugins.church_life.WorkFlow
             //    hlblDateAdded.Visible = false;
             //}
 
-            phAttributes.Controls.Clear();
-             _formControls.Clear();
+            if ( initForm == true )
+            {
+                phAttributes.Controls.Clear();
+                 _formControls.Clear();
  
 
-            // Begin foreach to populate fields on the form
-            foreach (Field field in _formState.Fields.OrderBy( f => f.Order ) )
-            {
-                var fieldIsVisible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
-                switch ( field.FieldType.ToLower() )
+                // Begin foreach to populate fields on the form
+                foreach (Field field in _formState.Fields.OrderBy( f => f.Order ) )
                 {
-                    case "literal":
-                        var fieldLiteral = new LiteralControl
-                        {
-                            ID = field.FieldName,
-                            Text = field.Prompt.ResolveMergeFields(mergeFields),
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldLiteral);
-
-                        _formControls.Add(fieldLiteral);
-                        break;
-
-                    case "text":
-                        var fieldText = new RockTextBox
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup, 
-                            Text = field.ResponseValue,
-                            TextMode = field.FieldConfiguration.Rows > 1  ? TextBoxMode.MultiLine : TextBoxMode.SingleLine,
-                            Rows = field.FieldConfiguration.Rows,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldText);
-
-                        _formControls.Add(fieldText);
-                        break;
-
-                    case "email":
-                        var fieldEmail = new EmailBox
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup, 
-                            Text = field.ResponseValue,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldEmail);
-
-                        _formControls.Add(fieldEmail);
-                        break;
-
-                    case "phonenumber":
-                        var fieldPhoneNumber = new PhoneNumberBox
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup, 
-                            Text = field.ResponseValue,
-                            CountryCode = "1",
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldPhoneNumber);
-
-                        _formControls.Add(fieldPhoneNumber);
-                        break;
-
-                    case "ssn":
-                        var fieldSsn = new SSNBox
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup, 
-                            TextEncrypted = field.ResponseValue,
-                            //AutoPostBack = field.PostbackOnChange,
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldSsn);
-
-                        _formControls.Add(fieldSsn);
-                        break;
-
-                    case "date":
-                        var fieldDate = new DatePicker
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
-                            Text = field.ResponseValue,
-                            Rows = field.FieldConfiguration.Rows,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = fieldIsVisible
-                        };
-                        phAttributes.Controls.Add(fieldDate);
-
-                        _formControls.Add(fieldDate);
-                        break;
-
-                    case "address":
-                        var addressValues = field.ResponseValue.FromJsonOrNull<AddressValue>();
-                        var fieldAddress = new AddressControl
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup, 
-                            Visible = fieldIsVisible,
-
-                            Street1 = addressValues != null ? addressValues.Street1 : "",
-                            Street2 = addressValues != null ? addressValues.Street2 : "",
-                            City = addressValues != null ? addressValues.City : "",
-                            State = addressValues != null ? addressValues.State : "",
-                            Country = addressValues != null ? addressValues.Country : "US",
-                            PostalCode = addressValues != null ? addressValues.PostalCode : ""
-                        };
-                        phAttributes.Controls.Add(fieldAddress);
-
-                        _formControls.Add(fieldAddress);
-                        break;
-
-                    case "radio":
-                        var fieldRadio = new RockRadioButtonList
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
-                            RepeatColumns = field.FieldConfiguration.Rows,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
-                        };
-                        fieldRadio.Items.Clear();
-                        phAttributes.Controls.Add(fieldRadio);
-
-                        foreach ( var option in field.FieldConfiguration.Options)
-                        {
-                            fieldRadio.Items.Add( option );
-                        }
-                        fieldRadio.SetValue( field.ResponseValue );
-
-                        _formControls.Add(fieldRadio);
-                        break;
-
-                    case "dropdown":
-                        var fieldDropDown = new RockDropDownList
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
-                        };
-                        fieldDropDown.Items.Clear();
-                        phAttributes.Controls.Add(fieldDropDown);
-
-                        fieldDropDown.Items.Add( "" );
-                        foreach ( var option in field.FieldConfiguration.Options)
-                        {
-                            fieldDropDown.Items.Add( option );
-                        }
-                        fieldDropDown.SetValue( field.ResponseValue );
-
-                        _formControls.Add(fieldDropDown);
-                        break;
-
-                    case "campus":
-                        int selectedCampusId = 0;
-                        int.TryParse(field.ResponseValue, out selectedCampusId);
-
-                        var fieldCampus = new CampusPicker
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
-                            AutoPostBack = field.PostbackOnChange,
-                            IncludeInactive = false,
-                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true"),
-                            SelectedCampusId = selectedCampusId, 
-                        };
-                        //fieldCampus.Items.Clear();
-                        phAttributes.Controls.Add(fieldCampus);
-
-                        _formControls.Add(fieldCampus);
-                        break;
-
-                    case "multibox":
-                        var fieldMultiBox = new RockCheckBoxList
-                        {
-                            ID = field.FieldName,
-                            Label = field.Prompt.ResolveMergeFields(mergeFields),
-                            Help = field.HelpText,
-                            Required = field.Required && fieldIsVisible,
-                            RequiredErrorMessage = field.RequiredErrorText,
-                            ValidationGroup = BlockValidationGroup,
-                            AutoPostBack = field.PostbackOnChange,
-                            Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
-                        };
-                        fieldMultiBox.Items.Clear();
-                        fieldMultiBox.SelectedValues.Clear();
-                        phAttributes.Controls.Add(fieldMultiBox);
-
-                        foreach ( var option in field.FieldConfiguration.Options)
-                        {
-                            fieldMultiBox.Items.Add( option );
-                        }
-
-                        var selectedValues = field.ResponseValue.FromJsonOrNull<List<string>>();
-                        if ( selectedValues != null && selectedValues.Count > 0)
-                        {
-                            foreach ( var item in fieldMultiBox.Items )
+                    var fieldIsVisible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
+                    switch ( field.FieldType.ToLower() )
+                    {
+                        case "literal":
+                            var fieldLiteral = new LiteralControl
                             {
-                                fieldMultiBox.Items.FindByText( item.ToString() ).Selected = ( selectedValues.Contains( item.ToString() ) );
-                            }
-                        }
+                                ID = field.FieldName,
+                                Text = field.Prompt.ResolveMergeFields(mergeFields),
+                                Visible = fieldIsVisible
+                            };
+                            phAttributes.Controls.Add(fieldLiteral);
 
-                        _formControls.Add(fieldMultiBox);
-                        break;
+                            _formControls.Add(fieldLiteral);
+                            break;
+
+                        case "text":
+                            var fieldText = new RockTextBox
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup, 
+                                Text = field.ResponseValue,
+                                TextMode = field.FieldConfiguration.Rows > 1  ? TextBoxMode.MultiLine : TextBoxMode.SingleLine,
+                                Rows = field.FieldConfiguration.Rows,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = fieldIsVisible
+                            };
+                            phAttributes.Controls.Add(fieldText);
+
+                            _formControls.Add(fieldText);
+                            break;
+
+                        case "email":
+                            var fieldEmail = new EmailBox
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup, 
+                                Text = field.ResponseValue,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = fieldIsVisible
+                            };
+                            phAttributes.Controls.Add(fieldEmail);
+
+                            _formControls.Add(fieldEmail);
+                            break;
+
+                        case "phonenumber":
+                            var fieldPhoneNumber = new PhoneNumberBox
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup, 
+                                Text = field.ResponseValue,
+                                CountryCode = "1",
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = fieldIsVisible
+                            };
+                            phAttributes.Controls.Add(fieldPhoneNumber);
+
+                            _formControls.Add(fieldPhoneNumber);
+                            break;
+
+                        case "ssn":
+                           var fieldSsn = new SSNBox
+                           {
+                               ID = field.FieldName,
+                               Label = field.Prompt.ResolveMergeFields(mergeFields),
+                               Help = field.HelpText,
+                               Required = field.Required && fieldIsVisible,
+                               RequiredErrorMessage = field.RequiredErrorText,
+                               ValidationGroup = BlockValidationGroup,
+                               //TextEncrypted = field.ResponseValue,
+                               Text = field.ResponseValue,
+                               Visible = fieldIsVisible
+                            };
+
+                            List<string> ssnParts = new List<string>();
+                            ssnParts.AddRange(fieldSsn.Text.Split(new char[] { '-' }));
+
+                            //if (ssnParts.Count == 3)
+                            //{
+                            //    foreach (Control control in fieldSsn.Controls)
+                            //    {
+                            //        try
+                            //        {
+                            //            var tbControl = (TextBox)control;
+                            //            if (tbControl.ID == "ssnArea_" + field.FieldName) tbControl.Attributes.Add("value", ssnParts[0]);
+                            //            if (tbControl.ID == "ssnGroup_" + field.FieldName) tbControl.Attributes.Add("value", ssnParts[1]);
+                            //            //if (tbControl.ID == "ssnSerial_" + field.FieldName) tbControl.Text = ssnParts[2];
+                            //        }
+                            //        catch
+                            //        {
+                            //            //try
+                            //            //{
+                            //            //    var hfControl = (HiddenField)control;
+                            //            //    var test2 = hfControl;
+                            //            //    hfControl.Value = Rock.Security.Encryption.DecryptString(field.ResponseValue);
+                            //            //}
+                            //            //catch { }
+                            //        }
+                            //    }
+                            //}
+
+
+                            phAttributes.Controls.Add(fieldSsn);
+
+                            _formControls.Add(fieldSsn);
+                            break;
+
+                        case "date":
+                            var fieldDate = new DatePicker
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup,
+                                Text = field.ResponseValue,
+                                Rows = field.FieldConfiguration.Rows,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = fieldIsVisible
+                            };
+                            phAttributes.Controls.Add(fieldDate);
+
+                            _formControls.Add(fieldDate);
+                            break;
+
+                        case "address":
+                            var addressValues = field.ResponseValue.FromJsonOrNull<AddressValue>();
+                            var fieldAddress = new AddressControl
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup, 
+                                Visible = fieldIsVisible,
+
+                                Street1 = addressValues != null ? addressValues.Street1 : "",
+                                Street2 = addressValues != null ? addressValues.Street2 : "",
+                                City = addressValues != null ? addressValues.City : "",
+                                State = addressValues != null ? addressValues.State : "",
+                                Country = addressValues != null ? addressValues.Country : "US",
+                                PostalCode = addressValues != null ? addressValues.PostalCode : ""
+                            };
+                            phAttributes.Controls.Add(fieldAddress);
+
+                            _formControls.Add(fieldAddress);
+                            break;
+
+                        case "radio":
+                            var fieldRadio = new RockRadioButtonList
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup,
+                                RepeatColumns = field.FieldConfiguration.Rows,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
+                            };
+                            fieldRadio.Items.Clear();
+                            phAttributes.Controls.Add(fieldRadio);
+
+                            foreach ( var option in field.FieldConfiguration.Options)
+                            {
+                                fieldRadio.Items.Add( option );
+                            }
+                            fieldRadio.SetValue( field.ResponseValue );
+
+                            _formControls.Add(fieldRadio);
+                            break;
+
+                        case "dropdown":
+                            var fieldDropDown = new RockDropDownList
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
+                            };
+                            fieldDropDown.Items.Clear();
+                            phAttributes.Controls.Add(fieldDropDown);
+
+                            fieldDropDown.Items.Add( "" );
+                            foreach ( var option in field.FieldConfiguration.Options)
+                            {
+                                fieldDropDown.Items.Add( option );
+                            }
+                            fieldDropDown.SetValue( field.ResponseValue );
+
+                            _formControls.Add(fieldDropDown);
+                            break;
+
+                        case "campus":
+                            int selectedCampusId = 0;
+                            int.TryParse(field.ResponseValue, out selectedCampusId);
+
+                            var fieldCampus = new CampusPicker
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup,
+                                AutoPostBack = field.PostbackOnChange,
+                                IncludeInactive = false,
+                                Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true"),
+                                SelectedCampusId = selectedCampusId, 
+                            };
+                            //fieldCampus.Items.Clear();
+                            phAttributes.Controls.Add(fieldCampus);
+
+                            _formControls.Add(fieldCampus);
+                            break;
+
+                        case "multibox":
+                            var fieldMultiBox = new RockCheckBoxList
+                            {
+                                ID = field.FieldName,
+                                Label = field.Prompt.ResolveMergeFields(mergeFields),
+                                Help = field.HelpText,
+                                Required = field.Required && fieldIsVisible,
+                                RequiredErrorMessage = field.RequiredErrorText,
+                                ValidationGroup = BlockValidationGroup,
+                                AutoPostBack = field.PostbackOnChange,
+                                Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true")
+                            };
+                            fieldMultiBox.Items.Clear();
+                            fieldMultiBox.SelectedValues.Clear();
+                            phAttributes.Controls.Add(fieldMultiBox);
+
+                            foreach ( var option in field.FieldConfiguration.Options)
+                            {
+                                fieldMultiBox.Items.Add( option );
+                            }
+
+                            var selectedValues = field.ResponseValue.FromJsonOrNull<List<string>>();
+                            if ( selectedValues != null && selectedValues.Count > 0)
+                            {
+                                foreach ( var item in fieldMultiBox.Items )
+                                {
+                                    fieldMultiBox.Items.FindByText( item.ToString() ).Selected = ( selectedValues.Contains( item.ToString() ) );
+                                }
+                            }
+
+                            _formControls.Add(fieldMultiBox);
+                            break;
+                    }
+                }
+
+                ShowNotes(false);
+
+            }
+            else
+            {
+                foreach (Field field in _formState.Fields.OrderBy( f => f.Order ))
+                {
+                    var fieldIsVisible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
+
+                    var control = phAttributes.FindControl( field.FieldName );
+                    if ( control != null )
+                    {
+                        control.Visible = (field.RevealCondition.ToString().ResolveMergeFields(mergeFields) == "true");
+                        //TODO: update to fieldisvisible
+
+                        if ( control is IRockControl)
+                        {
+                            var rockControl = (IRockControl)control;
+                            rockControl.Label = field.Prompt.ResolveMergeFields(mergeFields);
+                            rockControl.Required = field.Required && fieldIsVisible;
+                        }
+                    }
                 }
             }
 
-            ShowNotes(false);
-
             phActions.Controls.Clear();
-
-            var visibleActions = _formState.Actions.Where(a => a.RevealCondition.ResolveMergeFields(mergeFields).ToLower() == "true").OrderBy(a => a.Order);
+            var visibleActions = _formState.Actions;
+            //var visibleActions = _formState.Actions.Where(a => a.RevealCondition.ResolveMergeFields(mergeFields).ToLower() == "true").OrderBy(a => a.Order);
             foreach (var action in visibleActions )
             {
                 string buttonHtml = string.Empty;
@@ -1493,15 +1683,25 @@ namespace RockWeb.Plugins.church_life.WorkFlow
                                 _workflow.SetAttributeValue( field.AttributeKey, campusGuid ?? "" );
                             }
                         }
+                        else if (field.FieldType.ToLower() == "ssn")
+                        {
+                            _workflow.SetAttributeValue( field.AttributeKey, Rock.Security.Encryption.EncryptString( field.ResponseValue ) ?? "" );
+                        }
                         else
                         {
                             _workflow.SetAttributeValue( field.AttributeKey, field.ResponseValue );
                         }
 
-                        //TODO: make it so that the SSN isn't saved to the Workflow, but will be retained in the viewstate.
-                        foreach ( var ssnField in _formState.Fields.Where( f => f.FieldType.ToLower() == "ssn" ) ) ssnField.ResponseValue = null;
-                        _workflow.SetAttributeValue("FormState", _formState.ToJson() );
                     }
+
+                    //TODO: make it so that the SSN isn't saved to the Workflow, but will be retained in the viewstate.
+                    foreach ( var ssnField in _formState.Fields.Where( f => f.FieldType.ToLower() == "ssn" ) )
+                    {
+                        ssnField.ResponseValue = null;
+                    }
+
+                    _workflow.SetAttributeValue("FormState", _formState.ToJson() );
+
                     List<string> errorMessages;
                     _workflowService.Process(_workflow, out errorMessages);
                 }
