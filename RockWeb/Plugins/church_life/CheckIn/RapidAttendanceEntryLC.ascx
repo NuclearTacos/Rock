@@ -4,6 +4,8 @@
     <ContentTemplate>
         <Rock:NotificationBox ID="nbWarning" runat="server" NotificationBoxType="Warning" />
 
+        <asp:HiddenField ID="hfGroupMembershipRequired" Value="false" runat="server" />
+
         <asp:Panel ID="pnlEntry" runat="server" CssClass="panel panel-block">
             <div class="panel-heading">
                 <h1 class="panel-title"><i class="fa fa-calendar-check-o"></i> Rapid Attendance</h1>

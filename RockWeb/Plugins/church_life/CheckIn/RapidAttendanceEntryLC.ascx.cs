@@ -39,6 +39,7 @@ namespace RockWeb.Plugins.church_life.CheckIn
     [BooleanField( "Include Parent Group", "If true then the parent group will be included as an option in addition to its children.", false, order: 1 )]
     [BooleanField( "Default Show Current Attendees", "Should the Current Attendees grid be visible by default. When the grid is enabled performance will be reduced.", false, order: 1 )]
     [BooleanField("AcceptPageParameter", "Should the group block accept group Ids from the querystring.", true, order: 2)]
+    [BooleanField("DisableFutureDates", "Should the date picker disable selection of future dates.", true, order: 3)]
     public partial class RapidAttendanceEntryLC : RockBlock
     {
         #region Base Method Overrides
@@ -104,19 +105,36 @@ namespace RockWeb.Plugins.church_life.CheckIn
             ddlGroup.Items.Clear();
             ddlGroup.Items.Add( new ListItem() );
 
+
+            dpAttendanceDate.SelectedDate = RockDateTime.Today;
+
+            if (GetAttributeValue("DisableFutureDates").AsBoolean(false))
+            {
+                dpAttendanceDate.AllowFutureDateSelection = false;
+            }
+
             //
             // Set the group ID based on the page parameter.
             //
-            if (GetAttributeValue("AcceptPageParameter").AsBoolean(false) && PageParameter("GroupId") != null)
+            if (GetAttributeValue("AcceptPageParameter").AsBoolean(false) && PageParameter("GroupId") != "")
             {
                 int? groupId = PageParameter("GroupId").AsIntegerOrNull();
                 Group paramGroup = null;
                 if (groupId != null) paramGroup = new GroupService(rockContext).Get((int)groupId);
 
 
+                //Test if block needs to be hidden
+                if ( paramGroup.GroupType.TakesAttendance == false)
+                {
+                    upnlContent.Visible = false;
+                }
+
+
                 ddlGroup.Items.Add(new ListItem(paramGroup.Name, paramGroup.Id.ToString()));
                 ddlGroup.SelectedIndex = 1;
                 ddlGroup.Enabled = false;
+
+                
             }
             else
             {
@@ -331,6 +349,18 @@ namespace RockWeb.Plugins.church_life.CheckIn
             var dateTime = dpAttendanceDate.SelectedDate.Value;
             var groupLocation = new GroupLocationService( rockContext ).Get( ddlLocation.SelectedValue.AsInteger() );
 
+            //Checks if Group Requires membership for checkin, sends error message and returns if person doesn't belong.
+            var groupCheckInRule = group.GroupType.AttendanceRule;
+
+            if (groupCheckInRule == AttendanceRule.AlreadyBelongs && !group.Members.Select(gm => gm.PersonId).Contains(person.Id))
+            {
+                nbAttended.NotificationBoxType = Rock.Web.UI.Controls.NotificationBoxType.Warning;
+                nbAttended.Text = string.Format( "{0} is not a member of the group.", person.FullName );
+                return;               
+            }
+
+
+
             attendanceService.AddOrUpdate( person.PrimaryAliasId.Value, dateTime, group.Id, groupLocation.LocationId, scheduleId, group.CampusId );
 
             //
@@ -349,6 +379,7 @@ namespace RockWeb.Plugins.church_life.CheckIn
             //
             Rock.CheckIn.KioskLocationAttendance.Remove( groupLocation.LocationId );
 
+            nbAttended.NotificationBoxType = Rock.Web.UI.Controls.NotificationBoxType.Success;
             nbAttended.Text = string.Format( "{0} has been marked attended.", person.FullName );
 
             //
