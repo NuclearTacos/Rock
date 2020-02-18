@@ -450,12 +450,13 @@ namespace RockWeb.Plugins.CheckIn
 
             var rockContext = new RockContext();
 
-            var groupLocationService = new GroupLocationService(rockContext);
+            var definedValueService = new DefinedValueService(rockContext);
             var groupTypeService = new GroupTypeService(rockContext);
             var groupService = new GroupService(rockContext);
 
             var groupPaths = new List<GroupTypePath>();
-            var groupLocationQry = groupLocationService.Queryable().Where(gl => gl.Group.IsActive && !gl.Group.IsArchived);
+            //var groupLocationQry = definedValueService.Queryable().Where(gl => gl.Group.IsActive && !gl.Group.IsArchived);
+            var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id );
             int groupTypeId;
 
             // if this page has a PageParam for groupTypeId use that to limit which groupTypeId to see. Otherwise, use the groupTypeId specified in the filter
@@ -468,74 +469,73 @@ namespace RockWeb.Plugins.CheckIn
                 groupTypeId = ddlGroupType.SelectedValueAsInt() ?? Rock.Constants.All.Id;
             }
 
-            if (groupTypeId != Rock.Constants.All.Id)
-            {
-                var descendantGroupTypeIds = groupTypeService.GetAllAssociatedDescendents(groupTypeId).Select(a => a.Id);
+            //if (groupTypeId != Rock.Constants.All.Id)
+            //{
+            //    var descendantGroupTypeIds = groupTypeService.GetAllAssociatedDescendents(groupTypeId).Select(a => a.Id);
 
-                // filter to groups that either are of the GroupType or are of a GroupType that has the selected GroupType as a parent (ancestor)
-                groupLocationQry = groupLocationQry.Where(a => a.Group.GroupType.Id == groupTypeId || descendantGroupTypeIds.Contains(a.Group.GroupTypeId));
+            //    // filter to groups that either are of the GroupType or are of a GroupType that has the selected GroupType as a parent (ancestor)
+            //    definedValueQry = definedValueQry.Where(a => a.Group.GroupType.Id == groupTypeId || descendantGroupTypeIds.Contains(a.Group.GroupTypeId));
 
-                groupPaths = groupTypeService.GetAllAssociatedDescendentsPath(groupTypeId).ToList();
-            }
-            else
-            {
-                List<int> descendantGroupTypeIds = new List<int>();
-                foreach (GroupType groupType in GetTopGroupTypes(rockContext))
-                {
-                    descendantGroupTypeIds.Add(groupType.Id);
+            //    groupPaths = groupTypeService.GetAllAssociatedDescendentsPath(groupTypeId).ToList();
+            //}
+            //else
+            //{
+            //    List<int> descendantGroupTypeIds = new List<int>();
+            //    foreach (GroupType groupType in GetTopGroupTypes(rockContext))
+            //    {
+            //        descendantGroupTypeIds.Add(groupType.Id);
 
-                    groupPaths.AddRange(groupTypeService.GetAllAssociatedDescendentsPath(groupType.Id).ToList());
-                    foreach (var childGroupType in groupTypeService.GetChildGroupTypes(groupType.Id))
-                    {
-                        descendantGroupTypeIds.Add(childGroupType.Id);
-                        descendantGroupTypeIds.AddRange(groupTypeService.GetAllAssociatedDescendents(childGroupType.Id).Select(a => a.Id).ToList());
-                    }
-                }
+            //        groupPaths.AddRange(groupTypeService.GetAllAssociatedDescendentsPath(groupType.Id).ToList());
+            //        foreach (var childGroupType in groupTypeService.GetChildGroupTypes(groupType.Id))
+            //        {
+            //            descendantGroupTypeIds.Add(childGroupType.Id);
+            //            descendantGroupTypeIds.AddRange(groupTypeService.GetAllAssociatedDescendents(childGroupType.Id).Select(a => a.Id).ToList());
+            //        }
+            //    }
 
-                groupLocationQry = groupLocationQry.Where(a => descendantGroupTypeIds.Contains(a.Group.GroupTypeId));
-            }
+            //    definedValueQry = definedValueQry.Where(a => descendantGroupTypeIds.Contains(a.Group.GroupTypeId));
+            //}
 
-            if (gDefinedValueSchedule.SortProperty != null)
-            {
-                groupLocationQry = groupLocationQry.Sort(gDefinedValueSchedule.SortProperty);
-            }
-            else
-            {
-                groupLocationQry = groupLocationQry.OrderBy(a => a.Group.Name).ThenBy(a => a.Location.Name);
-            }
+            //if (gDefinedValueSchedule.SortProperty != null)
+            //{
+            //    definedValueQry = definedValueQry.Sort(gDefinedValueSchedule.SortProperty);
+            //}
+            //else
+            //{
+            //    definedValueQry = definedValueQry.OrderBy(a => a.Group.Name).ThenBy(a => a.Location.Name);
+            //}
 
-            var qryList = groupLocationQry
-                .Where(a => a.Location != null)
-                .Select(a =>
+            var qryList = definedValueQry
+                .Select( dv =>
                new
                {
-                   GroupLocationId = a.Id,
-                   a.Location,
-                   GroupId = a.GroupId,
-                   GroupName = a.Group.Name,
-                   ScheduleIdList = a.Schedules.Select(s => s.Id),
-                   GroupTypeId = a.Group.GroupTypeId
+                   GroupLocationId = dv.Id,
+                   //dv.Location,
+                   //GroupId = dv.GroupId,
+                   GroupName = dv.Value, //GroupName = dv.Group.Name,
+                   ScheduleIdList = new List<int>(), //dv.Schedules.Select(s => s.Id),
+                   //GroupTypeId = dv.Group.GroupTypeId
                }).ToList();
 
             var locationService = new LocationService(rockContext);
             int parentLocationId = pkrParentLocation.SelectedValueAsInt() ?? Rock.Constants.All.Id;
-            if (parentLocationId != Rock.Constants.All.Id)
-            {
-                var currentAndDescendantLocationIds = new List<int>();
-                currentAndDescendantLocationIds.Add(parentLocationId);
-                currentAndDescendantLocationIds.AddRange(locationService.GetAllDescendents(parentLocationId).Select(a => a.Id));
+            //if (parentLocationId != Rock.Constants.All.Id)
+            //{
+            //    var currentAndDescendantLocationIds = new List<int>();
+            //    currentAndDescendantLocationIds.Add(parentLocationId);
+            //    currentAndDescendantLocationIds.AddRange(locationService.GetAllDescendents(parentLocationId).Select(a => a.Id));
 
-                qryList = qryList.Where(a => currentAndDescendantLocationIds.Contains(a.Location.Id)).ToList();
-            }
+            //    qryList = qryList.Where(a => currentAndDescendantLocationIds.Contains(a.Location.Id)).ToList();
+            //}
 
             // put stuff in a DataTable so we can dynamically have columns for each Schedule
             DataTable dataTable = new DataTable();
             dataTable.Columns.Add("GroupLocationId");
-            dataTable.Columns.Add("GroupId");
+            //dataTable.Columns.Add("GroupId");
             dataTable.Columns.Add("GroupName");
-            dataTable.Columns.Add("GroupPath");
-            dataTable.Columns.Add("LocationName");
-            dataTable.Columns.Add("LocationPath");
+            //dataTable.Columns.Add("GroupPath");
+            //dataTable.Columns.Add("LocationName");
+            //dataTable.Columns.Add("LocationPath");
             foreach (var field in gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>())
             {
                 dataTable.Columns.Add(field.DataField, typeof(bool));
@@ -547,7 +547,7 @@ namespace RockWeb.Plugins.CheckIn
             {
                 DataRow dataRow = dataTable.NewRow();
                 dataRow["GroupLocationId"] = row.GroupLocationId;
-                dataRow["GroupName"] = groupService.GroupAncestorPathName(row.GroupId);
+                dataRow["GroupName"] = row.GroupName
                 dataRow["GroupPath"] = groupPaths.Where(gt => gt.GroupTypeId == row.GroupTypeId).Select(gt => gt.Path).FirstOrDefault();
                 dataRow["LocationName"] = row.Location.Name;
 
