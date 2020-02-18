@@ -24,7 +24,7 @@
                 <Rock:NotificationBox ID="nbNotification" runat="server" NotificationBoxType="Warning" />
 
                 <div class="grid">
-                    <Rock:Grid ID="gGroupLocationSchedule" runat="server" AllowSorting="true" AllowPaging="false" OnRowDataBound="gGroupLocationSchedule_RowDataBound" >
+                    <Rock:Grid ID="gDefinedValueSchedule" runat="server" AllowSorting="true" AllowPaging="false" OnRowDataBound="gGroupLocationSchedule_RowDataBound" >
                         <Columns>
 		                    <Rock:RockLiteralField ID="lGroupName" HeaderText="Group" SortExpression="Group.Name" />
 		                    <Rock:RockLiteralField ID="lLocationName" HeaderText="Location" SortExpression="Location.Name" />
@@ -61,7 +61,7 @@
 
             Sys.Application.add_load(function () {
                 // set the default state of the header checkbox based on if all item row checkboxes are checked
-                var $table = $('#<%=gGroupLocationSchedule.ClientID%>');
+                var $table = $('#<%=gDefinedValueSchedule.ClientID%>');
                 updateScheduleBuilderHeaderCheckboxes($table);
 
                 $table.find('tbody > tr > td input[type="checkbox"]').on('click', function () {

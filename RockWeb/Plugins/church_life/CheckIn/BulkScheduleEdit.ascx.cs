@@ -55,10 +55,10 @@ namespace RockWeb.Plugins.CheckIn
             _groupTypeId = this.PageParameter( "groupTypeId" ).AsIntegerOrNull();
             btnCancel.Visible = _groupTypeId.HasValue;
 
-            gGroupLocationSchedule.DataKeyNames = new string[] { "GroupLocationId" };
-            gGroupLocationSchedule.Actions.ShowAdd = false;
-            gGroupLocationSchedule.IsDeleteEnabled = false;
-            gGroupLocationSchedule.GridRebind += gGroupLocationSchedule_GridRebind;
+            gDefinedValueSchedule.DataKeyNames = new string[] { "DefinedValueId" };
+            gDefinedValueSchedule.Actions.ShowAdd = false;
+            gDefinedValueSchedule.IsDeleteEnabled = false;
+            gDefinedValueSchedule.GridRebind += gDefinedValueSchedule_GridRebind;
         }
 
         /// <summary>
@@ -114,21 +114,21 @@ namespace RockWeb.Plugins.CheckIn
         }
 
         /// <summary>
-        /// Handles the GridRebind event of the gGroupLocationSchedule control.
+        /// Handles the GridRebind event of the ggDefinedValueSchedule control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        private void gGroupLocationSchedule_GridRebind( object sender, EventArgs e )
+        private void gDefinedValueSchedule_GridRebind( object sender, EventArgs e )
         {
             BindGrid();
         }
 
         /// <summary>
-        /// Handles the RowDataBound event of the gGroupLocationSchedule control.
+        /// Handles the RowDataBound event of the ggDefinedValueSchedule control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="GridViewRowEventArgs"/> instance containing the event data.</param>
-        protected void gGroupLocationSchedule_RowDataBound( object sender, GridViewRowEventArgs e )
+        protected void gDefinedValueSchedule_RowDataBound( object sender, GridViewRowEventArgs e )
         {
             // add tool-tip to header columns
             if ( e.Row.RowType == DataControlRowType.Header )
@@ -182,10 +182,10 @@ namespace RockWeb.Plugins.CheckIn
             GroupLocationService groupLocationService = new GroupLocationService( rockContext );
             ScheduleService scheduleService = new ScheduleService( rockContext );
 
-            var gridViewRows = gGroupLocationSchedule.Rows;
+            var gridViewRows = gDefinedValueSchedule.Rows;
             foreach ( GridViewRow row in gridViewRows.OfType<GridViewRow>() )
             {
-                int groupLocationId = int.Parse( gGroupLocationSchedule.DataKeys[row.RowIndex].Value as string );
+                int groupLocationId = int.Parse( gDefinedValueSchedule.DataKeys[row.RowIndex].Value as string );
                 GroupLocation groupLocation = groupLocationService.Get( groupLocationId );
                 if ( groupLocation != null )
                 {
@@ -198,10 +198,10 @@ namespace RockWeb.Plugins.CheckIn
                             string dataField = ( fieldCell.ContainingField as CheckBoxEditableField ).DataField;
                             int scheduleId = int.Parse( dataField.Replace( "scheduleField_", string.Empty ) );
 
-                            // update GroupLocationSchedule depending on if the Schedule is Checked or not
+                            // update gDefinedValueSchedule depending on if the Schedule is Checked or not
                             if ( checkBox.Checked )
                             {
-                                // This schedule is selected, so if GroupLocationSchedule doesn't already have this schedule, add it
+                                // This schedule is selected, so if gDefinedValueSchedule doesn't already have this schedule, add it
                                 if ( !groupLocation.Schedules.Any( a => a.Id == scheduleId ) )
                                 {
                                     var schedule = scheduleService.Get( scheduleId );
@@ -210,7 +210,7 @@ namespace RockWeb.Plugins.CheckIn
                             }
                             else
                             {
-                                // This schedule is not selected, so if GroupLocationSchedule has this schedule, delete it
+                                // This schedule is not selected, so if gDefinedValueSchedule has this schedule, delete it
                                 if ( groupLocation.Schedules.Any( a => a.Id == scheduleId ) )
                                 {
                                     groupLocation.Schedules.Remove( groupLocation.Schedules.FirstOrDefault( a => a.Id == scheduleId ) );
@@ -344,9 +344,9 @@ namespace RockWeb.Plugins.CheckIn
         //        groupLocationQry = groupLocationQry.Where( a => descendantGroupTypeIds.Contains( a.Group.GroupTypeId ) );
         //    }
 
-        //    if ( gGroupLocationSchedule.SortProperty != null )
+        //    if ( ggDefinedValueSchedule.SortProperty != null )
         //    {
-        //        groupLocationQry = groupLocationQry.Sort( gGroupLocationSchedule.SortProperty );
+        //        groupLocationQry = groupLocationQry.Sort( ggDefinedValueSchedule.SortProperty );
         //    }
         //    else
         //    {
@@ -385,7 +385,7 @@ namespace RockWeb.Plugins.CheckIn
         //    dataTable.Columns.Add( "GroupPath" );
         //    dataTable.Columns.Add( "LocationName" );
         //    dataTable.Columns.Add( "LocationPath" );
-        //    foreach ( var field in gGroupLocationSchedule.Columns.OfType<CheckBoxEditableField>() )
+        //    foreach ( var field in ggDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>() )
         //    {
         //        dataTable.Columns.Add( field.DataField, typeof( bool ) );
         //    }
@@ -427,7 +427,7 @@ namespace RockWeb.Plugins.CheckIn
         //            dataRow["LocationPath"] = locationPaths[locationId];
         //        }
 
-        //        foreach ( var field in gGroupLocationSchedule.Columns.OfType<CheckBoxEditableField>() )
+        //        foreach ( var field in ggDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>() )
         //        {
         //            int scheduleId = int.Parse( field.DataField.Replace( "scheduleField_", string.Empty ) );
         //            dataRow[field.DataField] = row.ScheduleIdList.Any( a => a == scheduleId );
@@ -436,9 +436,9 @@ namespace RockWeb.Plugins.CheckIn
         //        dataTable.Rows.Add( dataRow );
         //    }
 
-        //    gGroupLocationSchedule.EntityTypeId = EntityTypeCache.Get<GroupLocation>().Id;
-        //    gGroupLocationSchedule.DataSource = dataTable;
-        //    gGroupLocationSchedule.DataBind();
+        //    ggDefinedValueSchedule.EntityTypeId = EntityTypeCache.Get<GroupLocation>().Id;
+        //    ggDefinedValueSchedule.DataSource = dataTable;
+        //    ggDefinedValueSchedule.DataBind();
         //}
 
         /// <summary>
@@ -495,9 +495,9 @@ namespace RockWeb.Plugins.CheckIn
                 groupLocationQry = groupLocationQry.Where(a => descendantGroupTypeIds.Contains(a.Group.GroupTypeId));
             }
 
-            if (gGroupLocationSchedule.SortProperty != null)
+            if (gDefinedValueSchedule.SortProperty != null)
             {
-                groupLocationQry = groupLocationQry.Sort(gGroupLocationSchedule.SortProperty);
+                groupLocationQry = groupLocationQry.Sort(gDefinedValueSchedule.SortProperty);
             }
             else
             {
@@ -536,7 +536,7 @@ namespace RockWeb.Plugins.CheckIn
             dataTable.Columns.Add("GroupPath");
             dataTable.Columns.Add("LocationName");
             dataTable.Columns.Add("LocationPath");
-            foreach (var field in gGroupLocationSchedule.Columns.OfType<CheckBoxEditableField>())
+            foreach (var field in gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>())
             {
                 dataTable.Columns.Add(field.DataField, typeof(bool));
             }
@@ -578,7 +578,7 @@ namespace RockWeb.Plugins.CheckIn
                     dataRow["LocationPath"] = locationPaths[locationId];
                 }
 
-                foreach (var field in gGroupLocationSchedule.Columns.OfType<CheckBoxEditableField>())
+                foreach (var field in gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>())
                 {
                     int scheduleId = int.Parse(field.DataField.Replace("scheduleField_", string.Empty));
                     dataRow[field.DataField] = row.ScheduleIdList.Any(a => a == scheduleId);
@@ -587,9 +587,9 @@ namespace RockWeb.Plugins.CheckIn
                 dataTable.Rows.Add(dataRow);
             }
 
-            gGroupLocationSchedule.EntityTypeId = EntityTypeCache.Get<GroupLocation>().Id;
-            gGroupLocationSchedule.DataSource = dataTable;
-            gGroupLocationSchedule.DataBind();
+            gDefinedValueSchedule.EntityTypeId = EntityTypeCache.Get<GroupLocation>().Id;
+            gDefinedValueSchedule.DataSource = dataTable;
+            gDefinedValueSchedule.DataBind();
         }
 
 
@@ -615,10 +615,10 @@ namespace RockWeb.Plugins.CheckIn
                 scheduleQry = scheduleQry.Where( a => a.CategoryId == null );
             }
 
-            var checkBoxEditableFields = gGroupLocationSchedule.Columns.OfType<CheckBoxEditableField>().ToList();
+            var checkBoxEditableFields = gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>().ToList();
             foreach ( var field in checkBoxEditableFields )
             {
-                gGroupLocationSchedule.Columns.Remove( field );
+                gDefinedValueSchedule.Columns.Remove( field );
             }
 
             // clear out any existing schedule columns and add the ones that match the current filter setting
@@ -632,7 +632,7 @@ namespace RockWeb.Plugins.CheckIn
 
                 CheckBoxEditableField field = new CheckBoxEditableField { HeaderText = item.Name + "<br /><a href='#' style='display: inline' class='fa fa-square-o js-sched-select-all'></a>", DataField = dataFieldName };
                 field.HeaderStyle.HorizontalAlign = HorizontalAlign.Center;
-                gGroupLocationSchedule.Columns.Add( field );
+                gDefinedValueSchedule.Columns.Add( field );
             }
 
             if ( !scheduleList.Any() )
