@@ -158,13 +158,15 @@ namespace RockWeb.Plugins.CheckIn
                     Literal lGroupName = e.Row.FindControl( "lGroupName" ) as Literal;
                     if ( lGroupName != null )
                     {
-                        lGroupName.Text = string.Format( "{0}<br /><small>{1}</small>", dataRow["GroupName"] as string, dataRow["GroupPath"] as string );
+                        //lGroupName.Text = string.Format( "{0}<br /><small>{1}</small>", dataRow["GroupName"] as string, dataRow["GroupPath"] as string );
+                        lGroupName.Text = dataRow["GroupName"] as string;
                     }
 
                     Literal lLocationName = e.Row.FindControl( "lLocationName" ) as Literal;
                     if ( lLocationName != null )
                     {
-                        lLocationName.Text = string.Format( "{0}<br /><small>{1}</small>", dataRow["LocationName"] as string, dataRow["LocationPath"] as string );
+                        //lLocationName.Text = string.Format( "{0}<br /><small>{1}</small>", dataRow["LocationName"] as string, dataRow["LocationPath"] as string );
+                        lLocationName.Text = string.Empty;
                     }
                 }
             }
@@ -455,8 +457,9 @@ namespace RockWeb.Plugins.CheckIn
             var groupService = new GroupService(rockContext);
 
             var groupPaths = new List<GroupTypePath>();
+            var definedTypeId = DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id;
             //var groupLocationQry = definedValueService.Queryable().Where(gl => gl.Group.IsActive && !gl.Group.IsArchived);
-            var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id );
+            var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == definedTypeId ).ToList();
             int groupTypeId;
 
             // if this page has a PageParam for groupTypeId use that to limit which groupTypeId to see. Otherwise, use the groupTypeId specified in the filter
@@ -509,7 +512,7 @@ namespace RockWeb.Plugins.CheckIn
                 .Select( dv =>
                new
                {
-                   GroupLocationId = dv.Id,
+                   DefinedValueId = dv.Id,
                    //dv.Location,
                    //GroupId = dv.GroupId,
                    GroupName = dv.Value, //GroupName = dv.Group.Name,
@@ -530,7 +533,7 @@ namespace RockWeb.Plugins.CheckIn
 
             // put stuff in a DataTable so we can dynamically have columns for each Schedule
             DataTable dataTable = new DataTable();
-            dataTable.Columns.Add("GroupLocationId");
+            dataTable.Columns.Add("DefinedValueId");
             //dataTable.Columns.Add("GroupId");
             dataTable.Columns.Add("GroupName");
             //dataTable.Columns.Add("GroupPath");
@@ -546,37 +549,37 @@ namespace RockWeb.Plugins.CheckIn
             foreach (var row in qryList)
             {
                 DataRow dataRow = dataTable.NewRow();
-                dataRow["GroupLocationId"] = row.GroupLocationId;
-                dataRow["GroupName"] = row.GroupName
-                dataRow["GroupPath"] = groupPaths.Where(gt => gt.GroupTypeId == row.GroupTypeId).Select(gt => gt.Path).FirstOrDefault();
-                dataRow["LocationName"] = row.Location.Name;
+                dataRow["DefinedValueId"] = row.DefinedValueId;
+                dataRow["GroupName"] = row.GroupName;
+                //dataRow["GroupPath"] = groupPaths.Where(gt => gt.GroupTypeId == row.GroupTypeId).Select(gt => gt.Path).FirstOrDefault();
+                //dataRow["LocationName"] = row.Location.Name;
 
-                if (row.Location.ParentLocationId.HasValue)
-                {
-                    int locationId = row.Location.ParentLocationId.Value;
+                //if (row.Location.ParentLocationId.HasValue)
+                //{
+                //    int locationId = row.Location.ParentLocationId.Value;
 
-                    if (!locationPaths.ContainsKey(locationId))
-                    {
-                        var locationNames = new List<string>();
-                        var parentLocation = locationService.Get(locationId);
-                        while (parentLocation != null)
-                        {
-                            locationNames.Add(parentLocation.Name);
-                            parentLocation = parentLocation.ParentLocation;
-                        }
-                        if (locationNames.Any())
-                        {
-                            locationNames.Reverse();
-                            locationPaths.Add(locationId, locationNames.AsDelimited(" > "));
-                        }
-                        else
-                        {
-                            locationPaths.Add(locationId, string.Empty);
-                        }
-                    }
+                //    if (!locationPaths.ContainsKey(locationId))
+                //    {
+                //        var locationNames = new List<string>();
+                //        var parentLocation = locationService.Get(locationId);
+                //        while (parentLocation != null)
+                //        {
+                //            locationNames.Add(parentLocation.Name);
+                //            parentLocation = parentLocation.ParentLocation;
+                //        }
+                //        if (locationNames.Any())
+                //        {
+                //            locationNames.Reverse();
+                //            locationPaths.Add(locationId, locationNames.AsDelimited(" > "));
+                //        }
+                //        else
+                //        {
+                //            locationPaths.Add(locationId, string.Empty);
+                //        }
+                //    }
 
-                    dataRow["LocationPath"] = locationPaths[locationId];
-                }
+                //    dataRow["LocationPath"] = locationPaths[locationId];
+                //}
 
                 foreach (var field in gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>())
                 {
@@ -587,7 +590,7 @@ namespace RockWeb.Plugins.CheckIn
                 dataTable.Rows.Add(dataRow);
             }
 
-            gDefinedValueSchedule.EntityTypeId = EntityTypeCache.Get<GroupLocation>().Id;
+            gDefinedValueSchedule.EntityTypeId = EntityTypeCache.Get<DefinedType>().Id;
             gDefinedValueSchedule.DataSource = dataTable;
             gDefinedValueSchedule.DataBind();
         }
