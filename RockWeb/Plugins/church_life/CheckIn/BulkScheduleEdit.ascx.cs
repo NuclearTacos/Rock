@@ -184,39 +184,105 @@ namespace RockWeb.Plugins.CheckIn
             GroupLocationService groupLocationService = new GroupLocationService( rockContext );
             ScheduleService scheduleService = new ScheduleService( rockContext );
 
+            //Copied from BindGrid.
+            var groupTypeService = new GroupTypeService( rockContext );
+            var definedValueService = new DefinedValueService( rockContext );
+            var definedTypeId = DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id;
+            var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == definedTypeId ).ToList();
+            int groupTypeId = ddlGroupType.SelectedValueAsInt() ?? Rock.Constants.All.Id;
+
+            //var qryList = definedValueQry
+            //   .Select( dv =>
+            //  new
+            //  {
+            //      DefinedValueId = dv.Id,
+            //       //dv.Location,
+            //       //GroupId = dv.GroupId,
+            //       GroupName = dv.Value, //GroupName = dv.Group.Name,
+            //       ScheduleIdList = new List<int>(), //dv.Schedules.Select(s => s.Id),
+            //                                         //GroupTypeId = dv.Group.GroupTypeId
+            //   } ).ToList();
+
+
+            //TODO: Refactor into own method; copied from BindGrid.
+            int parentLocationId = pkrParentLocation.SelectedValueAsInt() ?? Rock.Constants.All.Id;
+            var descendantGroupTypeIds = groupTypeService.GetAllAssociatedDescendents( groupTypeId ).Select( a => a.Id );
+
+            //TODO: Refactor into own method; copied from BindGrid.
+            var locationFilteredQuery = groupLocationService.Queryable().Where( gl => descendantGroupTypeIds.Contains( gl.Group.GroupTypeId ) && gl.LocationId == parentLocationId );
+            if( parentLocationId != Rock.Constants.All.Id )
+            {
+                locationFilteredQuery = locationFilteredQuery.Where( gl => gl.LocationId == parentLocationId );
+            }
+
+            var filteredGroups = locationFilteredQuery.Select( gl => gl.Group ).ToList();
+            filteredGroups.ForEach( g => g.LoadAttributes() );
+
+
+
             var gridViewRows = gDefinedValueSchedule.Rows;
+            //var test = gDefinedValueSchedule.DataSourceAsDataTable;
+
+            //int test3 = 0
+            //foreach( DataRow test2 in test.Rows ) test3 = test2["DefinedValueId"];
+
             foreach ( GridViewRow row in gridViewRows.OfType<GridViewRow>() )
             {
-                int groupLocationId = int.Parse( gDefinedValueSchedule.DataKeys[row.RowIndex].Value as string );
+                int rowDefinedValueId = int.Parse( gDefinedValueSchedule.DataKeys[row.RowIndex].Value as string );
+                //var rowDefinedValueId = 795;    // WHEN HITTING SAVE, ONLY GROUPS THAT ARE LifeKids Weekend WILL BE AFFECTED.
+                //                                // They will get changed for each row, so they will retain the state of the last Row.
+
+                var groupLocationId = 0; // This needs to be removed.
+
+                var rowFilteredGroups = filteredGroups.Where( g => g.GetAttributeValue( "SchedulingGroup" ).Contains( DefinedValueCache.Get( rowDefinedValueId ).Guid.ToString() ) ).ToList();
+
+                List<GroupLocation> rowGLs = rowFilteredGroups.Select( g => g.GroupLocations.Where( gl => gl.LocationId == parentLocationId ).FirstOrDefault() ).ToList();
+
                 GroupLocation groupLocation = groupLocationService.Get( groupLocationId );
                 if ( groupLocation != null )
                 {
-                    foreach ( var fieldCell in row.Cells.OfType<DataControlFieldCell>() )
+                    foreach( var fieldCell in row.Cells.OfType<DataControlFieldCell>() )
                     {
                         CheckBoxEditableField checkBoxTemplateField = fieldCell.ContainingField as CheckBoxEditableField;
-                        if ( checkBoxTemplateField != null )
+                        if( checkBoxTemplateField != null )
                         {
                             CheckBox checkBox = fieldCell.Controls[0] as CheckBox;
                             string dataField = ( fieldCell.ContainingField as CheckBoxEditableField ).DataField;
                             int scheduleId = int.Parse( dataField.Replace( "scheduleField_", string.Empty ) );
 
                             // update gDefinedValueSchedule depending on if the Schedule is Checked or not
-                            if ( checkBox.Checked )
+                            if( checkBox.Checked )
                             {
-                                // This schedule is selected, so if gDefinedValueSchedule doesn't already have this schedule, add it
-                                if (!groupLocation.Schedules.Any(a => a.Id == scheduleId))
+                                //WorkNote: When the checkbox is checked, look if the represented GroupLocations
+                                //          include the schedule.  If they don't include it, add it.
+                                foreach(var location in rowGLs)
                                 {
-                                    var schedule = scheduleService.Get( scheduleId );
-                                    groupLocation.Schedules.Add( schedule );
+                                    if( !location.Schedules.Any( a => a.Id == scheduleId ) )
+                                    {
+                                        var schedule = scheduleService.Get( scheduleId );
+                                        location.Schedules.Add( schedule );
+                                    }
                                 }
+                                // This schedule is selected, so if gDefinedValueSchedule doesn't already have this schedule, add it
+                                 //if( !groupLocation.Schedules.Any( a => a.Id == scheduleId ) )
+                                 //{
+                                      //var schedule = scheduleService.Get( scheduleId );
+                                      //groupLocation.Schedules.Add( schedule );
+                                 //}
                             }
                             else
                             {
+                                //WorkNote: When the checkbox isn't checked, remove the Schedule from any GroupLocations
+
                                 // This schedule is not selected, so if gDefinedValueSchedule has this schedule, delete it
-                                if ( groupLocation.Schedules.Any( a => a.Id == scheduleId ) )
+                                foreach(var location in rowGLs)
                                 {
-                                    groupLocation.Schedules.Remove( groupLocation.Schedules.FirstOrDefault( a => a.Id == scheduleId ) );
+                                    if( location.Schedules.Any( a => a.Id == scheduleId ) )
+                                    {
+                                        location.Schedules.Remove( location.Schedules.FirstOrDefault( a => a.Id == scheduleId ) );
+                                    }
                                 }
+                               
                             }
                         }
                     }
