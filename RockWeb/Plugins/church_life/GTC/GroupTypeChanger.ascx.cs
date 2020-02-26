@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright Southeast Christian Church
 //
 // Licensed under the  Southeast Christian Church License (the "License");
@@ -99,6 +99,7 @@ namespace RockWeb.Plugins.org_secc.Administration
             if ( groupTypeId != 0 && group != null )
             {
                 btnSave.Visible = true;
+                pnlBulk.Visible = true;
                 var newGroupType = new GroupTypeService( rockContext ).Get( groupTypeId );
 
                 BindRoles( newGroupType, group.GroupType.Roles );
@@ -109,6 +110,7 @@ namespace RockWeb.Plugins.org_secc.Administration
             {
                 pnlAttributes.Visible = false;
                 pnlRoles.Visible = false;
+                pnlBulk.Visible = false;
                 btnSave.Visible = false;
             }
         }
@@ -276,6 +278,13 @@ namespace RockWeb.Plugins.org_secc.Administration
             }
             rockContext.SaveChanges();
             nbSuccess.Visible = true;
+        }
+
+        protected void cbEnableBulk_CheckedChanged( object sender, EventArgs e )
+        {
+            nbParentLevels.Visible = cbEnableBulk.Checked;
+            ddlBulkComparison.Visible = cbEnableBulk.Checked;
+            tbName.Visible = cbEnableBulk.Checked;
         }
     }
 }

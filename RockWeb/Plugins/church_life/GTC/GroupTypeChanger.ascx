@@ -26,6 +26,15 @@
                 <asp:PlaceHolder runat="server" ID="phAttributes" />
             </asp:Panel>
         </div>
+        <div class="col-sm-6">
+            <asp:Panel runat="server" ID="pnlBulk" Visible="false">
+                <h3>Bulk Settings</h3>
+                <Rock:RockCheckBox runat="server" ID="cbEnableBulk" Label="Enable Bulk Options" OnCheckedChanged="cbEnableBulk_CheckedChanged" AutoPostBack="true" />
+                <Rock:NumberBox runat="server" ID="nbParentLevels" Label="Generations back to search from." ToolTip="Look for matching groups that are related up to this many genations back." Visible="false"/>
+                <Rock:RockDropDownList runat="server" ID="ddlBulkComparison" Label="Name ComparisonType" Visible="false"/>
+                <Rock:RockTextBox runat="server" ID="tbName" Visible="false"/>
+            </asp:Panel>
+        </div>
         <div class="col-xs-12">
             <Rock:BootstrapButton runat="server" ID="btnSave" CssClass="btn btn-success" Text="Save"
                  Visible="false" OnClick="btnSave_Click"></Rock:BootstrapButton>
