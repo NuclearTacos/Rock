@@ -23,6 +23,7 @@ using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
@@ -38,7 +39,7 @@ namespace RockWeb.Plugins.org_secc.Administration
     public partial class GroupTypeChanger : RockBlock
     {
 
-        Group group;
+        Group selectedGroup;
         RockContext rockContext;
         /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
@@ -52,30 +53,53 @@ namespace RockWeb.Plugins.org_secc.Administration
             if ( groupId != 0 )
             {
                 rockContext = new RockContext();
-                group = new GroupService( rockContext ).Get( groupId );
-                if ( group != null )
+                selectedGroup = new GroupService( rockContext ).Get( groupId );
+                if ( selectedGroup != null )
                 {
-                    ltName.Text = string.Format( "<span style='font-size:1.5em;'>{0}</span>", group.Name );
-                    ltGroupTypeName.Text = string.Format( "<span style='font-size:1.5em;'>{0}</span>", group.GroupType.Name );
+                    ltName.Text = string.Format( "<span style='font-size:1.5em;'>{0}</span>", selectedGroup.Name );
+                    ltGroupTypeName.Text = string.Format( "<span style='font-size:1.5em;'>{0}</span>", selectedGroup.GroupType.Name );
                 }
             }
 
             if ( !Page.IsPostBack )
             {
                 BindGroupTypeDropDown();
+                BindComparisonDropDown();
+
+                dvBulkGroupDV.EntityTypeId = EntityTypeCache.GetId( typeof( Rock.Model.Group ) );
             }
             else
             {
                 var groupTypeId = ddlGroupTypes.SelectedValue.AsInteger();
-                if ( groupTypeId == 0 || group == null )
+                if ( groupTypeId == 0 || selectedGroup == null )
                 {
                     return;
                 }
                 var newGroupType = new GroupTypeService( new RockContext() ).Get( groupTypeId );
-                BindRoles( newGroupType, group.GroupType.Roles );
+                BindRoles( newGroupType, selectedGroup.GroupType.Roles );
                 DisplayAttributes();
             }
 
+        }
+
+        private void BindComparisonDropDown()
+        {
+            //ddlBulkComparison.Items.Add( new ListItem(
+            //        text: "Equal To",
+            //        value: ComparisonOptions.EqualTo.ToStringSafe()
+            //    ) );
+            //ddlBulkComparison.Items.Add( new ListItem(
+            //        text: "Starts With",
+            //        value: ComparisonOptions.StartsWith.ToStringSafe()
+            //    ) );
+            //ddlBulkComparison.Items.Add( new ListItem(
+            //        text: "Ends With",
+            //        value: ComparisonOptions.EndsWith.ToStringSafe()
+            //    ) );
+            //ddlBulkComparison.Items.Add( new ListItem(
+            //        text: "Contains",
+            //        value: ComparisonOptions.Contains.ToStringSafe()
+            //    ) );
         }
 
         private void BindGroupTypeDropDown()
@@ -96,13 +120,13 @@ namespace RockWeb.Plugins.org_secc.Administration
         protected void ddlGroupTypes_SelectedIndexChanged( object sender, EventArgs e )
         {
             var groupTypeId = ddlGroupTypes.SelectedValue.AsInteger();
-            if ( groupTypeId != 0 && group != null )
+            if ( groupTypeId != 0 && selectedGroup != null )
             {
                 btnSave.Visible = true;
                 pnlBulk.Visible = true;
                 var newGroupType = new GroupTypeService( rockContext ).Get( groupTypeId );
 
-                BindRoles( newGroupType, group.GroupType.Roles );
+                BindRoles( newGroupType, selectedGroup.GroupType.Roles );
                 DisplayAttributes();
 
             }
@@ -155,7 +179,7 @@ namespace RockWeb.Plugins.org_secc.Administration
             var attributeService = new AttributeService( rockContext );
 
             var groupMemberEntityId = new EntityTypeService( rockContext ).Get( Rock.SystemGuid.EntityType.GROUP_MEMBER.AsGuid() ).Id;
-            var stringGroupTypeId = group.GroupTypeId.ToString();
+            var stringGroupTypeId = selectedGroup.GroupTypeId.ToString();
 
             var attributes = attributeService.Queryable()
                 .Where( a =>
@@ -180,7 +204,7 @@ namespace RockWeb.Plugins.org_secc.Administration
                     } )
                     .ToList();
 
-                var groupIdString = group.Id.ToString();
+                var groupIdString = selectedGroup.Id.ToString();
                 var groupAttributes = attributeService.Queryable()
                     .Where( a =>
                         a.EntityTypeQualifierColumn == "GroupId"
@@ -228,63 +252,111 @@ namespace RockWeb.Plugins.org_secc.Administration
         protected void btnSave_Click( object sender, EventArgs e )
         {
             //Get the old groupTypeId before we change it
-            var stringGroupTypeId = group.GroupTypeId.ToString();
+            var stringGroupTypeId = selectedGroup.GroupTypeId.ToString();
 
-            //Map group roles
-            group.GroupTypeId = ddlGroupTypes.SelectedValue.AsInteger();
-            var groupMembers = group.Members;
-            foreach ( var role in group.GroupType.Roles )
+            //TODO: Chris's magic
+            List<Group> groupsToBeChanged = new List<Group>();
+
+            var dataViewId = 0;
+            int.TryParse( dvBulkGroupDV.ItemId, out dataViewId );
+
+            List<string> dvErrorMessage = new List<string>();
+            var rockContext = new RockContext();
+            if( dataViewId > 0 )
             {
-                var ddlRole = ( RockDropDownList ) phRoles.FindControl( role.Id.ToString() + "_ddlRole" );
-                var roleMembers = groupMembers.Where( gm => gm.GroupRoleId == role.Id );
-                foreach ( var member in roleMembers )
-                {
-                    member.GroupRoleId = ddlRole.SelectedValue.AsInteger();
-                }
+                var dataViewService = new DataViewService( rockContext );
+
+                var dvQuery = ( IQueryable<Group> ) dataViewService.Get( dataViewId ).GetQuery( null, rockContext, null, out dvErrorMessage );
+
+                groupsToBeChanged.AddRange( dvQuery.ToList() );
+            }
+            else
+            {
+                groupsToBeChanged.Add( selectedGroup );
             }
 
-            //Map attributes
-            var attributeService = new AttributeService( rockContext );
-            var attributeValueService = new AttributeValueService( rockContext );
-
-            var groupMemberEntityId = new EntityTypeService( rockContext ).Get( Rock.SystemGuid.EntityType.GROUP_MEMBER.AsGuid() ).Id;
-
-            var attributes = attributeService.Queryable()
-                .Where( a =>
-                    a.EntityTypeQualifierColumn == "GroupTypeId"
-                    && a.EntityTypeQualifierValue == stringGroupTypeId
-                    && a.EntityTypeId == groupMemberEntityId
-                    ).ToList();
-            foreach ( var attribute in attributes )
+            if( dvErrorMessage.Count == 0 )
             {
-                var ddlAttribute = ( RockDropDownList ) phAttributes.FindControl( attribute.Id.ToString() + "_ddlAttribute" );
-                if ( ddlAttribute != null )
+                foreach( var group in groupsToBeChanged )
                 {
-                    var newAttributeId = ddlAttribute.SelectedValue.AsInteger();
-                    if ( newAttributeId != 0 )
+                    var groupMembers = group.Members;
+                    foreach( var role in group.GroupType.Roles ) // For Role in New Role
                     {
-                        foreach ( var member in groupMembers )
+                        var ddlRole = ( RockDropDownList ) phRoles.FindControl( role.Id.ToString() + "_ddlRole" );
+                        var roleMembers = groupMembers.Where( gm => gm.GroupRoleId == role.Id );
+                        foreach( var member in roleMembers )
                         {
-                            var attributeEntity = attributeValueService.Queryable()
-                                .Where( av => av.EntityId == member.Id && av.AttributeId == attribute.Id )
-                                .FirstOrDefault();
-                            if ( attributeEntity != null )
+                            member.GroupRoleId = ddlRole.SelectedValue.AsInteger();
+                        }
+                    }
+
+                    //Map attributes
+                    var attributeService = new AttributeService( rockContext );
+                    var attributeValueService = new AttributeValueService( rockContext );
+
+                    var groupMemberEntityId = new EntityTypeService( rockContext ).Get( Rock.SystemGuid.EntityType.GROUP_MEMBER.AsGuid() ).Id;
+
+                    var attributes = attributeService.Queryable()
+                        .Where( a =>
+                            a.EntityTypeQualifierColumn == "GroupTypeId"
+                            && a.EntityTypeQualifierValue == stringGroupTypeId
+                            && a.EntityTypeId == groupMemberEntityId
+                            ).ToList();
+                    foreach( var attribute in attributes )
+                    {
+                        var ddlAttribute = ( RockDropDownList ) phAttributes.FindControl( attribute.Id.ToString() + "_ddlAttribute" );
+                        if( ddlAttribute != null )
+                        {
+                            var newAttributeId = ddlAttribute.SelectedValue.AsInteger();
+                            if( newAttributeId != 0 )
                             {
-                                attributeEntity.AttributeId = newAttributeId;
+                                foreach( var member in groupMembers )
+                                {
+                                    var attributeEntity = attributeValueService.Queryable()
+                                        .Where( av => av.EntityId == member.Id && av.AttributeId == attribute.Id )
+                                        .FirstOrDefault();
+                                    if( attributeEntity != null )
+                                    {
+                                        attributeEntity.AttributeId = newAttributeId;
+                                    }
+                                }
                             }
                         }
                     }
+
+                    var groupTypeService = new GroupTypeService( rockContext );
+                    group.GroupType = groupTypeService.Get( ddlGroupTypes.SelectedValue.AsInteger() );
                 }
+                rockContext.SaveChanges();
+                nbSuccess.Visible = true;
             }
-            rockContext.SaveChanges();
-            nbSuccess.Visible = true;
+            else
+            {
+                nbSuccess.Visible = false;
+                //TODO: show the error message somehow
+            }
         }
 
         protected void cbEnableBulk_CheckedChanged( object sender, EventArgs e )
         {
-            nbParentLevels.Visible = cbEnableBulk.Checked;
-            ddlBulkComparison.Visible = cbEnableBulk.Checked;
-            tbName.Visible = cbEnableBulk.Checked;
+            //nbParentLevels.Visible = cbEnableBulk.Checked;
+            //ddlBulkComparison.Visible = cbEnableBulk.Checked;
+            //tbName.Visible = cbEnableBulk.Checked;
         }
     }
+
+    #region Enumerations
+
+    public enum ComparisonOptions
+    {
+        EqualTo = 0,
+
+        StartsWith = 1,
+
+        EndsWith = 2,
+
+        Contains = 3
+    }
+
+    #endregion
 }
