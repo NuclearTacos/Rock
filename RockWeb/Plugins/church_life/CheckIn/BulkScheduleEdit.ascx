@@ -11,13 +11,13 @@
 
                 <div class="form-inline margin-b-md row">
                     <asp:Panel ID="pnlGroupType" runat="server" CssClass="col-sm-4">
-                        <Rock:GroupTypePicker ID="ddlGroupType" runat="server" OnSelectedIndexChanged="ddlGroupType_SelectedIndexChanged" AutoPostBack="true" />
+                        <%--<Rock:GroupTypePicker ID="ddlGroupType" runat="server" OnSelectedIndexChanged="ddlGroupType_SelectedIndexChanged" AutoPostBack="true" />--%>
                     </asp:Panel>
                     <div class="col-sm-4">
                         <Rock:LocationItemPicker ID="pkrParentLocation" runat="server" Label="Parent Location" OnSelectItem="pkrParentLocation_SelectItem" />
                     </div>
                     <div class="col-sm-4">
-                        <Rock:CategoryPicker ID="pCategory" runat="server" AllowMultiSelect="false" Label="Schedule Category" OnSelectItem="pCategory_SelectItem"/>
+                        <Rock:CategoryPicker ID="pCategory" runat="server" AllowMultiSelect="true" Label="Schedule Category" OnSelectItem="pCategory_SelectItem"/>
                     </div>
                 </div>
 

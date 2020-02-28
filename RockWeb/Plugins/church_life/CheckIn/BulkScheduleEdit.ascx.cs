@@ -14,6 +14,12 @@
 // limitations under the License.
 // </copyright>
 //
+using Rock;
+using Rock.Data;
+using Rock.Model;
+using Rock.Web.Cache;
+using Rock.Web.UI;
+using Rock.Web.UI.Controls;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -21,12 +27,6 @@ using System.Data;
 using System.Linq;
 using System.Web.UI;
 using System.Web.UI.WebControls;
-using Rock;
-using Rock.Data;
-using Rock.Model;
-using Rock.Web.Cache;
-using Rock.Web.UI;
-using Rock.Web.UI.Controls;
 
 namespace RockWeb.Plugins.CheckIn
 {
@@ -69,8 +69,20 @@ namespace RockWeb.Plugins.CheckIn
         {
             if ( !Page.IsPostBack )
             {
+               
                 BindFilter();
                 BindGrid();
+            }
+
+            if( pkrParentLocation.SelectedValue == "0" )
+            {
+                gDefinedValueSchedule.Visible = false;
+                btnSave.Visible = false;
+            }
+            else
+            {
+                gDefinedValueSchedule.Visible = true;
+                btnSave.Visible = true;
             }
 
             base.OnLoad( e );
@@ -85,11 +97,11 @@ namespace RockWeb.Plugins.CheckIn
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void ddlGroupType_SelectedIndexChanged( object sender, EventArgs e )
-        {
-            SetBlockUserPreference( "Group Type", ddlGroupType.SelectedValueAsId().ToString() );
-            BindGrid();
-        }
+        //protected void ddlGroupType_SelectedIndexChanged( object sender, EventArgs e )
+        //{
+        //   SetBlockUserPreference( "Group Type", ddlGroupType.SelectedValueAsId().ToString() );
+        //   BindGrid();
+        //}
 
         /// <summary>
         /// Handles the SelectItem event of the pkrParentLocation control.
@@ -189,7 +201,6 @@ namespace RockWeb.Plugins.CheckIn
             var definedValueService = new DefinedValueService( rockContext );
             var definedTypeId = DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id;
             var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == definedTypeId ).ToList();
-            int groupTypeId = ddlGroupType.SelectedValueAsInt() ?? Rock.Constants.All.Id;
 
             //var qryList = definedValueQry
             //   .Select( dv =>
@@ -206,10 +217,9 @@ namespace RockWeb.Plugins.CheckIn
 
             //TODO: Refactor into own method; copied from BindGrid.
             int parentLocationId = pkrParentLocation.SelectedValueAsInt() ?? Rock.Constants.All.Id;
-            var descendantGroupTypeIds = groupTypeService.GetAllAssociatedDescendents( groupTypeId ).Select( a => a.Id );
 
             //TODO: Refactor into own method; copied from BindGrid.
-            var locationFilteredQuery = groupLocationService.Queryable().Where( gl => descendantGroupTypeIds.Contains( gl.Group.GroupTypeId ) && gl.LocationId == parentLocationId );
+            var locationFilteredQuery = groupLocationService.Queryable().Where( gl => gl.LocationId == parentLocationId );
             if( parentLocationId != Rock.Constants.All.Id )
             {
                 locationFilteredQuery = locationFilteredQuery.Where( gl => gl.LocationId == parentLocationId );
@@ -232,13 +242,14 @@ namespace RockWeb.Plugins.CheckIn
                 //var rowDefinedValueId = 795;    // WHEN HITTING SAVE, ONLY GROUPS THAT ARE LifeKids Weekend WILL BE AFFECTED.
                 //                                // They will get changed for each row, so they will retain the state of the last Row.
 
-                var groupLocationId = 0; // This needs to be removed.
-
-                var rowFilteredGroups = filteredGroups.Where( g => g.GetAttributeValue( "SchedulingGroup" ).Contains( DefinedValueCache.Get( rowDefinedValueId ).Guid.ToString() ) ).ToList();
+                //var groupLocationId = parentLocationId; // This needs to be removed.
+                var test = filteredGroups.Where( g => g.Attributes.ContainsKey( "SchedulingGroup" ) );
+                //var rowFilteredGroups = filteredGroups.Where( g => g.GetAttributeValue( "SchedulingGroup" ).Contains( DefinedValueCache.Get( rowDefinedValueId ).Guid.ToString() ) ).ToList();
+                var rowFilteredGroups = filteredGroups.Where( g => g.Attributes.ContainsKey( "SchedulingGroup" ) && g.GetAttributeValue( "SchedulingGroup" ).Contains( DefinedValueCache.Get( rowDefinedValueId ).Guid.ToString() ) ).ToList();
 
                 List<GroupLocation> rowGLs = rowFilteredGroups.Select( g => g.GroupLocations.Where( gl => gl.LocationId == parentLocationId ).FirstOrDefault() ).ToList();
 
-                GroupLocation groupLocation = groupLocationService.Get( groupLocationId );
+                GroupLocation groupLocation = groupLocationService.Get( parentLocationId );
                 if ( groupLocation != null )
                 {
                     foreach( var fieldCell in row.Cells.OfType<DataControlFieldCell>() )
@@ -321,23 +332,24 @@ namespace RockWeb.Plugins.CheckIn
         /// </summary>
         private void BindFilter()
         {
-            ddlGroupType.Items.Clear();
-            ddlGroupType.Items.Add( Rock.Constants.All.ListItem );
+            //ddlGroupType.Visible = false;
+            //ddlGroupType.Items.Clear();
+            //ddlGroupType.Items.Add( Rock.Constants.All.ListItem );
 
             var rockContext = new RockContext();
 
             foreach( var groupType in GetTopGroupTypes( rockContext ) )
-            {
-                ddlGroupType.Items.Add( new ListItem( groupType.Name, groupType.Id.ToString() ) );
-            }
-            ddlGroupType.SetValue( GetBlockUserPreference( "Group Type" ) );
+            //{
+            //  ddlGroupType.Items.Add( new ListItem( groupType.Name, groupType.Id.ToString() ) );
+            //}
+            //ddlGroupType.SetValue( GetBlockUserPreference( "Group Type" ) );
 
             // hide the GroupType filter if this page has a groupTypeId parameter
             if ( _groupTypeId.HasValue )
             {
                 pnlGroupType.Visible = false;
             }
-
+            //int catagorynum = pCategory.SelectedValues.Count();
             int? categoryId = GetBlockUserPreference( "Category" ).AsIntegerOrNull();
             if ( !categoryId.HasValue )
             {
@@ -356,6 +368,7 @@ namespace RockWeb.Plugins.CheckIn
             }
 
             pkrParentLocation.SetValue( GetBlockUserPreference( "Parent Location" ).AsIntegerOrNull() );
+            
         }
 
 
@@ -377,17 +390,17 @@ namespace RockWeb.Plugins.CheckIn
             var definedTypeId = DefinedTypeCache.Get( SCHEDULE_GROUPS_DEFINED_TYPE ).Id;
             //var groupLocationQry = definedValueService.Queryable().Where(gl => gl.Group.IsActive && !gl.Group.IsArchived);
             var definedValueQry = definedValueService.Queryable().Where( dv => dv.DefinedTypeId == definedTypeId ).ToList();
-            int groupTypeId;
+
 
             // if this page has a PageParam for groupTypeId use that to limit which groupTypeId to see. Otherwise, use the groupTypeId specified in the filter
-            if (_groupTypeId.HasValue)
-            {
-                groupTypeId = _groupTypeId.Value;
-            }
-            else
-            {
-                groupTypeId = ddlGroupType.SelectedValueAsInt() ?? Rock.Constants.All.Id;
-            }
+            //if (_groupTypeId.HasValue)
+            //{
+            //    groupTypeId = _groupTypeId.Value;
+            //}
+            //else
+            //{
+            //    groupTypeId = ddlGroupType.SelectedValueAsInt() ?? Rock.Constants.All.Id;
+            //}
 
             //if (groupTypeId != Rock.Constants.All.Id)
             //{
@@ -467,7 +480,6 @@ namespace RockWeb.Plugins.CheckIn
             var locationPaths = new Dictionary<int, string>();
 
             //List<int> descendantGroupTypeIds = new List<int>();
-            var descendantGroupTypeIds = groupTypeService.GetAllAssociatedDescendents( groupTypeId ).Select( a => a.Id );
             //if( groupTypeId != Rock.Constants.All.Id )
             //{
             //    //foreach( GroupType groupType in GetTopGroupTypes( rockContext ) )
@@ -489,11 +501,15 @@ namespace RockWeb.Plugins.CheckIn
             //}
 
             // Find all Groups that meet at the filtered location
-            var locationFilteredQuery = groupLocationService.Queryable().Where( gl => descendantGroupTypeIds.Contains( gl.Group.GroupTypeId ) && gl.LocationId == parentLocationId );
+            var locationFilteredQuery = groupLocationService.Queryable().Where( gl =>  gl.LocationId == parentLocationId );
             if ( parentLocationId != Rock.Constants.All.Id )
             {
                 locationFilteredQuery = locationFilteredQuery.Where( gl => gl.LocationId == parentLocationId );
             }
+
+            // Unnecessary since we will only affect groups that match the selected Defined Value for the Row
+            //var checkInTemplateId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_FILTER.AsGuid() );
+            //locationFilteredQuery = locationFilteredQuery.Where( gl => gl.Group.GroupType.GroupTypePurposeValueId == checkInTemplateId );
 
             var filteredGroups = locationFilteredQuery.Select( gl => gl.Group ).ToList();
             filteredGroups.ForEach( g => g.LoadAttributes() );
@@ -504,7 +520,7 @@ namespace RockWeb.Plugins.CheckIn
                 dataRow["DefinedValueId"] = row.DefinedValueId;
                 dataRow["GroupName"] = row.GroupName;
                 
-                var rowFilteredGroups = filteredGroups.Where( g => g.GetAttributeValue( "SchedulingGroup" ).Contains( DefinedValueCache.Get( row.DefinedValueId ).Guid.ToString() ) ).ToList();
+                var rowFilteredGroups = filteredGroups.Where( g => g.GetAttributeValues( "SchedulingGroup" ).Contains( DefinedValueCache.Get( row.DefinedValueId ).Guid.ToString() ) ).ToList();
 
                 foreach (var field in gDefinedValueSchedule.Columns.OfType<CheckBoxEditableField>())
                 {
@@ -545,11 +561,18 @@ namespace RockWeb.Plugins.CheckIn
             var scheduleQry = scheduleService.Queryable().Where( a => a.IsActive && a.CheckInStartOffsetMinutes != null );
 
             // limit Schedules to the Category from the Filter
-            int scheduleCategoryId = pCategory.SelectedValueAsInt() ?? Rock.Constants.All.Id;
-            if ( scheduleCategoryId != Rock.Constants.All.Id )
+            List<int> scheduleCategoryIds = pCategory.SelectedValuesAsInt().ToList(); //?? Rock.Constants.All.Id;
+            if ( !scheduleCategoryIds.Contains( Rock.Constants.All.Id ) )
             {
-                scheduleQry = scheduleQry.Where( a => a.CategoryId == scheduleCategoryId );
-                
+                scheduleQry = scheduleQry.Where( s => scheduleCategoryIds.Contains( s.CategoryId ?? 0 ) );
+
+                //foreach (var category in scheduleCategoryIds)
+                //{
+                //    scheduleQry = scheduleQry.Where( a => a.CategoryId == category );
+
+                //}
+                //scheduleQry = scheduleQry.Where( a => a.CategoryId == scheduleCategoryId );
+
             }
             else
             {
@@ -564,9 +587,16 @@ namespace RockWeb.Plugins.CheckIn
             }
 
             // clear out any existing schedule columns and add the ones that match the current filter setting
-            var scheduleList = scheduleQry.ToList().OrderBy( a => a.Name ).ToList();
+            var scheduleList = scheduleQry.ToList();
+            //var scheduleList2 = scheduleList.ToList().OrderBy( a => a.Name ).ToList();
 
-            var sortedScheduleList = scheduleList.OrderByNextScheduledDateTime();
+            var occurrenceDate = RockDateTime.Now.SundayDate().AddDays( 1 );
+            var sortedScheduleList = scheduleList.
+                OrderBy( a => a.CategoryId )
+                .ThenBy( a => a.GetNextStartDateTime( occurrenceDate ) )
+                .ThenBy( a => a.Name )
+                .ThenBy( a => a.Id )
+                .ToList(); ;
 
             foreach ( var item in sortedScheduleList )
             {
