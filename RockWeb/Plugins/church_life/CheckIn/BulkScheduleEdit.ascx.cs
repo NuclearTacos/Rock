@@ -121,7 +121,10 @@ namespace RockWeb.Plugins.CheckIn
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void pCategory_SelectItem( object sender, EventArgs e )
         {
-            SetBlockUserPreference( "Category", pCategory.SelectedValueAsId().ToString() );
+            var userPrefString = string.Empty;
+            userPrefString = pCategory.SelectedValues.ToList().JoinStrings( "," );
+
+            SetBlockUserPreference( "Category", userPrefString );
             BindGrid();
         }
 
@@ -349,26 +352,31 @@ namespace RockWeb.Plugins.CheckIn
             {
                 pnlGroupType.Visible = false;
             }
-            //int catagorynum = pCategory.SelectedValues.Count();
-            int? categoryId = GetBlockUserPreference( "Category" ).AsIntegerOrNull();
-            if ( !categoryId.HasValue )
-            {
-                var categoryCache = CategoryCache.Get( Rock.SystemGuid.Category.SCHEDULE_SERVICE_TIMES.AsGuid() );
-                categoryId = categoryCache != null ? categoryCache.Id : (int?)null;
-            }
+
+
+
+            //int? categoryId = GetBlockUserPreference( "Category" ).AsIntegerOrNull();
+
+
+            //if ( !categoryId.HasValue )
+            //{
+            //    var categoryCache = CategoryCache.Get( Rock.SystemGuid.Category.SCHEDULE_SERVICE_TIMES.AsGuid() );
+            //    categoryId = categoryCache != null ? categoryCache.Id : (int?)null;
+            //}
 
             pCategory.EntityTypeId = EntityTypeCache.GetId( typeof( Rock.Model.Schedule ) ) ?? 0;
-            if ( categoryId.HasValue )
+            pCategory.SetValue( null );
+
+            var userPref = GetBlockUserPreference( "Category" ).Split( new char[] { ',' } );
+
+            var categoryIdList = new List<int>();
+            foreach( var category in userPref )
             {
-                pCategory.SetValue( new CategoryService( rockContext ).Get( categoryId.Value ) );
+                categoryIdList.Add( category.AsInteger() );
             }
-            else
-            {
-                pCategory.SetValue( null );
-            }
+            pCategory.SetValues( categoryIdList );
 
             pkrParentLocation.SetValue( GetBlockUserPreference( "Parent Location" ).AsIntegerOrNull() );
-            
         }
 
 
