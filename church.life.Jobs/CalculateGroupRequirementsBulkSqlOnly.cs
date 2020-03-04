@@ -68,7 +68,7 @@ namespace church.life.Jobs
                     $@"Select gm.PersonId, gmr.*
                     From [GroupMember] gm
 	                    Inner Join [Group] g on g.Id = gm.GroupId and g.GroupTypeId not in ( 10, 11, 12 )
-	                    Left Join [GroupRequirement] gr on ( gr.GroupId = g.Id or gr.GroupTypeId = g.GroupTypeId ) and gr.GroupRoleId = gm.GroupRoleId
+	                    Left Join [GroupRequirement] gr on ( gr.GroupId = g.Id or gr.GroupTypeId = g.GroupTypeId ) and ( gr.GroupRoleId = gm.GroupRoleId or gr.GroupRoleId is null )
 	                    Left Join [GroupMemberRequirement] gmr on gmr.GroupMemberId = gm.Id and gmr.GroupRequirementId = gr.Id
                     Where gr.GroupRequirementTypeId = {groupRequirementType.Id}
 	                    and gmr.Id is not null
@@ -80,7 +80,7 @@ namespace church.life.Jobs
                     $@"Select gr.Id as 'GroupRequirementId', gm.*
                     From [GroupMember] gm
 	                    Inner Join [Group] g on g.Id = gm.GroupId and g.GroupTypeId not in ( 10, 11, 12 )
-	                    Left Join [GroupRequirement] gr on ( gr.GroupId = g.Id or gr.GroupTypeId = g.GroupTypeId ) and gr.GroupRoleId = gm.GroupRoleId
+	                    Left Join [GroupRequirement] gr on ( gr.GroupId = g.Id or gr.GroupTypeId = g.GroupTypeId ) and ( gr.GroupRoleId = gm.GroupRoleId or gr.GroupRoleId is null )
 	                    Left Join [GroupMemberRequirement] gmr on gmr.GroupMemberId = gm.Id and gmr.GroupRequirementId = gr.Id
                     Where gr.GroupRequirementTypeId = {groupRequirementType.Id}
 	                    and gmr.Id is null
